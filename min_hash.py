@@ -1,5 +1,4 @@
 # This is not efficient at all. am going to change so it calculates all the hashes at once in one vectorized function call. WIP
-import pickle
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import partial
@@ -16,8 +15,8 @@ enc = tiktoken.get_encoding("cl100k_base")
 # from nptyping import NDArray, Structure, Shape, String
 
 # load in mylist.pkl
-with open("my_list.pkl", "rb") as f:
-    mylist = pickle.load(f)
+# with open("my_list.pkl", "rb") as f:
+# mylist = pickle.load(f)
 # mylist = pickle.load(open("mylist.pkl", "rb"))
 #
 
@@ -31,24 +30,9 @@ hash_document_with_seeds = np.vectorize(
     hash_document, excluded=["token"], otypes=[np.int64]
 )
 
-
-class HashPartial_oop:
-    """
-    Partial function with seeds baked in. Gen_hashes returns a 1 x __len__ array of hashes for each seed
-    """
-
-    def __init__(
-        self,
-        num_seeds: int,
-        hash_fn_vec: Callable[
-            [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
-        ] = hash_document_with_seeds,
-    ):
-        self.seeds = np.random.randint(0, 10000000, num_seeds)
-        self.gen_hashes = partial(hash_fn_vec, seed=self.seeds)
-
-    def __len__(self) -> int:
-        return self.seeds.shape[0]
+hash_tokens_with_seed = np.vectorize(
+    hash_document, excluded=["seed"], otypes=[np.int64]
+)
 
 
 @dataclass
@@ -62,6 +46,32 @@ class HashPartial:
 
     def __len__(self) -> int:
         return self.seeds.shape[0]
+
+
+def gen_min_hash_for_tokens(tokens: npt.NDArray[np.int32], seed: np.int32) -> np.int64:
+    """
+    @param tokens: int32 x length of document
+    @param seed: seed to use for hash function
+    @return: int64 x 1
+    """
+    hashes = np.empty(tokens.shape[0], dtype=np.int64)
+    for i in range(tokens.shape[0]):
+        hashes[i] = hash_document(tokens[i].tobytes(), seed)
+    return np.min(hashes)
+
+
+def get_min_for_each_seed(
+    tokens: npt.NDArray[np.int32], seeds: npt.NDArray[np.int32]
+) -> npt.NDArray[np.int64]:
+    """
+    @param tokens: int32 x length of document
+    @param seeds: int32 x num_seeds
+    @return: int64 x num_seeds
+    """
+    hashes = np.empty(seeds.shape[0], dtype=np.int64)
+    for i in range(seeds.shape[0]):
+        hashes[i] = gen_min_hash_for_tokens(tokens, seeds[i])
+    return hashes
 
 
 def gen_random_seeds(length: int) -> npt.NDArray[np.int32]:
@@ -109,11 +119,15 @@ def gen_signature_matrix(
     res = np.zeros((tokens.shape[0], len(hasher)), dtype=np.int32)
     for i in range(tokens.shape[0]):
         res[i] = hasher.gen_hashes(tokens[i])
-    return res
+    # get min for each column
+    return np.min(res, axis=0)
+
+
+#  return res
 
 
 def compute_signature(
-    tokens: npt.NDArray[np.uint64], hash_functions: HashSet
+    tokens: npt.NDArray[np.uint64], hash_functions
 ) -> npt.NDArray[np.uint64]:
     """Compute the signature for a set of ngrams"""
     return np.array([np.min(h(tokens)) for h in hash_functions], dtype=np.uint64)
@@ -137,36 +151,13 @@ def jaccard_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> 
     return np.intersect1d(a, b).size / np.union1d(a, b).size
 
 
-def _test_gen_hash_functions(test_strings):
-    """Test the hash function generator"""
-    hash_functions = gen_hash_functions(20, 10)
-    sigs = []
-    tokenlist = []
-    for elm in test_strings:
-        tokens = np.array(enc.encode_ordinary(elm), dtype=np.uint64)
-        tokenlist.append(tokens)
-        print(tokens)
-        sigs.append(compute_signature(tokens, hash_functions))
-
-    # Compare jaccard similarity between all pairs of documents
-    for i in range(len(test_strings)):
-        for j in range(i + 1, len(test_strings)):
-            similarity = jaccard_similarity(tokenlist[i], tokenlist[j])
-            print(
-                f"Jaccard similarity between document {i} and document {j}: {similarity}"
-            )
-            similarity_sig = jaccard_similarity(sigs[i], sigs[j])
-            print(f"Jaccard similarity between sig {i} and sig {j}: {similarity_sig}")
-
-
 # get_signature_matrix([enc.encode_ordinary(t) for t in _test_strings], hashfns)
 
 
 def get_signature_matrix(
-    tokenlist: List[npt.NDArray[np.uint64]],
-    hash_functions: HashSet,
+    tokenlist: List[npt.NDArray[np.uint64]], hash_functions
 ) -> npt.NDArray[np.uint64]:
-    """Compute the signature matrix for a list of tokenlists"""
+    """[DEPRICATED] Compute the signature matrix for a list of tokenlists"""
     sig_matrix = np.zeros((len(tokenlist), len(hash_functions)), dtype=np.uint64)
     for i, tokens in enumerate(tokenlist):
         sig_matrix[i] = compute_signature(tokens, hash_functions)
@@ -224,10 +215,28 @@ def hash_band(band: np.ndarray, seed: int = 42) -> int:
 def gen_sig_mat_for_each(
     tokenlist: List[npt.NDArray[np.int32]], hasher: HashPartial
 ) -> List[npt.NDArray[np.uint64]]:
-    """Compute the signature matrix for a list of tokenlists"""
-    sig_matrix = []
+    # Preallocate signature matrix array
+    sig_matrix = np.empty((len(tokenlist), hasher.seeds.shape[0]), dtype=np.uint64)
+
     for i, tokens in enumerate(tokenlist):
+        sig_matrix[i] = gen_signature_matrix(tokens, hasher)
+
         if i % 25 == 0:
             print(utils.progress_bar(i, len(tokenlist)))
-        sig_matrix.append(gen_signature_matrix(tokens, hasher))
+
+    return sig_matrix
+
+
+def gen_sig_mat_for_each_rev(
+    tokenlist: List[npt.NDArray[np.int32]], seeds: npt.NDArray[np.int32]
+) -> List[npt.NDArray[np.uint64]]:
+    # Preallocate signature matrix array
+    sig_matrix = np.empty((len(tokenlist), seeds.shape[0]), dtype=np.uint64)
+
+    for i, tokens in enumerate(tokenlist):
+        sig_matrix[i] = get_min_for_each_seed(tokens, seeds)
+
+        if i % 25 == 0:
+            print(utils.progress_bar(i, len(tokenlist)))
+
     return sig_matrix
