@@ -1,6 +1,7 @@
 # This is not efficient at all. am going to change so it calculates all the hashes at once in one vectorized function call. WIP
 import pickle
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import partial
 from typing import Callable, DefaultDict, List, Set
 
@@ -29,7 +30,7 @@ hash_document_with_seeds = np.vectorize(
 )
 
 
-class HashPartial:
+class HashPartial_oop:
     """
     Partial function with seeds baked in. Gen_hashes returns a 1 x __len__ array of hashes for each seed
     """
@@ -48,24 +49,51 @@ class HashPartial:
         return self.seeds.shape[0]
 
 
-# Hash = List[HashElm]
+@dataclass
+class HashPartial:
+    """
+    Partial function with seeds baked in. Gen_hashes returns a 1 x __len__ array of hashes for each seed
+    """
+
+    seeds: npt.NDArray[np.int32]
+    gen_hashes: Callable[[np.int32], npt.NDArray[np.int64]]
+
+    def __len__(self) -> int:
+        return self.seeds.shape[0]
 
 
-# @jax.jit
-# def hash_element(
-#     tokens: npt.NDArray[np.uint64],
-#     hash_gen_vec: Callable[[npt.NDArray, int], np.uint64],
-#     salt: np.uint64,
-# ) -> HashElm:
-#     # pad the salt with zeros
-#     return hash_gen_vec(tokens, int(salt))
+def gen_random_seeds(length: int) -> npt.NDArray[np.int32]:
+    return np.random.randint(0, 10000000, length)
 
 
-# def gen_hash_functions(num_hashes: int, hash_element_fn=hash_element) -> HashSet:
-#     """Generate a list of hash functions"""
-#     salt = np.random.randint(0, 10000000, num_hashes)
-#     # salt_strings = np.char.zfill(salt.astype(str), salt_len)[-salt_len:]
-#     return [partial(hash_element_fn, hash_gen_vec=hash_numpy_vec, salt=s) for s in salt]
+def gen_hash_partial(
+    num_seeds: int,
+    hash_fn_vec: Callable[
+        [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
+    ] = hash_document_with_seeds,
+) -> HashPartial:
+    """
+    If custom seeds is set, ignores num_seeds and uses the custom seeds instead.
+    @param num_seeds: number of seeds to generate
+    @param hash_fn_vec: hash function to use
+    @return: HashPartial object
+    """
+    seeds = gen_random_seeds(num_seeds)
+    return HashPartial(num_seeds, partial(hash_fn_vec, seed=seeds))
+
+
+def restore_hash_partial(
+    seeds: npt.ArrayLike,
+    hash_fn_vec: Callable[
+        [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
+    ] = hash_document_with_seeds,
+) -> HashPartial:
+    """
+    @param seeds: seeds to use, ArrayLike
+    @param hash_fn_vec: hash function to use
+    @return: HashPartial object
+    """
+    return HashPartial(seeds, partial(hash_fn_vec, seed=seeds))
 
 
 def gen_signature_matrix(
@@ -80,15 +108,6 @@ def gen_signature_matrix(
     for i in range(tokens.shape[0]):
         res[i] = hasher.gen_hashes(tokens[i])
     return res
-
-
-def gen_hash_partial(
-    num_hashes: int, hash_element_fn=hash_document_with_seeds
-) -> HashPartial:
-    """Generate a list of hash functions"""
-    salt = np.random.randint(0, 10000000, num_hashes)
-    # salt_strings = np.char.zfill(salt.astype(str), salt_len)[-salt_len:]
-    return HashPartial(partial(hash_element_fn, seed=salt), salt)
 
 
 def compute_signature(
