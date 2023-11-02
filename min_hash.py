@@ -10,6 +10,7 @@ enc = tiktoken.get_encoding("cl100k_base")
 # from nptyping import NDArray, Structure, Shape, String
 
 
+# I know there is probably a more vectorized way to do this, esp with the bytes, but whatever
 def hash_numpy(token: np.uint64, seed: np.uint64) -> np.uint64:
     return xxh32(bytes(token), int(seed)).intdigest()
 
@@ -37,16 +38,6 @@ def hash_element(
     return hash_gen_vec(tokens, int(salt))
 
 
-# def gen_hash_functions(
-#     num_hashes: int, salt_len: int = 20, hash_element_fn=hash_element
-# ) -> HashSet:
-#     """Generate a list of hash functions"""
-#     salt = np.random.randint(0, 10000000, num_hashes)
-#     salt_strings = np.char.zfill(salt.astype(str), salt_len)[-salt_len:]
-#     return [
-#         partial(hash_element_fn, hash_gen_vec=hash_numpy_vec, salt=salt)
-#         for salt in salt_strings
-#     ]
 def gen_hash_functions(num_hashes: int, hash_element_fn=hash_element) -> HashSet:
     """Generate a list of hash functions"""
     salt = np.random.randint(0, 10000000, num_hashes)
@@ -61,6 +52,7 @@ def compute_signature(
     return np.array([np.min(h(tokens)) for h in hash_functions], dtype=np.uint64)
 
 
+# Unused
 def simple_shingles_generator(text: str, k: int = 3) -> npt.NDArray[np.str_]:
     """Generate shingles of length k from the text"""
     return np.fromiter(
