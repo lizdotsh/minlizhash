@@ -4,3 +4,4 @@ commoncrawl/*
 env/*
 *.pickle
 *.npy
+__pycache__/*
