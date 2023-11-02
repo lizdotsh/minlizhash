@@ -142,7 +142,7 @@ def lsh_buckets_vectorized(
         # Efficiently compute the hashes for each band across all documents
         start_idx = band * rows_per_band
         band_signatures = signatures[:, start_idx : start_idx + rows_per_band]
-        hash_numpy_vec
+        # hash_numpy_vec
         for doc_id, band_signature in enumerate(band_signatures):
             # Use an efficient hash function such as xxhash
             all_band_hashes[doc_id, band] = xxh32(

@@ -2,3 +2,5 @@ commoncrawl/*
 .DS_Store
 .DS_store
 env/*
+*.pickle
+*.npy
