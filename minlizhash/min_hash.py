@@ -1,15 +1,13 @@
 # This is not efficient at all. am going to change so it calculates all the hashes at once in one vectorized function call. WIP
 from collections import defaultdict
-from dataclasses import dataclass
-from functools import partial
-from typing import Callable, DefaultDict, List, Set
+from typing import DefaultDict, List, Set
 
 import numpy as np
 import numpy.typing as npt
 import tiktoken
-from xxhash import xxh32, xxh32_intdigest
-
 import utils as utils
+from hasher import HashPartial, hash_document
+from xxhash import xxh32
 
 enc = tiktoken.get_encoding("cl100k_base")
 # from nptyping import NDArray, Structure, Shape, String
@@ -22,30 +20,6 @@ enc = tiktoken.get_encoding("cl100k_base")
 
 
 # I know there is probably a more vectorized way to do this, esp with the bytes, but whatever
-def hash_document(tokenbyte: bytes, seed: np.int32) -> np.int64:
-    return xxh32_intdigest(tokenbyte, seed)
-
-
-hash_document_with_seeds = np.vectorize(
-    hash_document, excluded=["token"], otypes=[np.int64]
-)
-
-hash_tokens_with_seed = np.vectorize(
-    hash_document, excluded=["seed"], otypes=[np.int64]
-)
-
-
-@dataclass
-class HashPartial:
-    """
-    Partial function with seeds baked in. Gen_hashes returns a 1 x __len__ array of hashes for each seed
-    """
-
-    seeds: npt.NDArray[np.int32]
-    gen_hashes: Callable[[np.int32], npt.NDArray[np.int64]]
-
-    def __len__(self) -> int:
-        return self.seeds.shape[0]
 
 
 def gen_min_hash_for_tokens(tokens: npt.NDArray[np.int32], seed: np.int32) -> np.int64:
@@ -72,40 +46,6 @@ def get_min_for_each_seed(
     for i in range(seeds.shape[0]):
         hashes[i] = gen_min_hash_for_tokens(tokens, seeds[i])
     return hashes
-
-
-def gen_random_seeds(length: int) -> npt.NDArray[np.int32]:
-    return np.random.randint(0, 10000000, length)
-
-
-def gen_hash_partial(
-    num_seeds: int,
-    hash_fn_vec: Callable[
-        [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
-    ] = hash_document_with_seeds,
-) -> HashPartial:
-    """
-    If custom seeds is set, ignores num_seeds and uses the custom seeds instead.
-    @param num_seeds: number of seeds to generate
-    @param hash_fn_vec: hash function to use
-    @return: HashPartial object
-    """
-    seeds = gen_random_seeds(num_seeds)
-    return HashPartial(seeds, partial(hash_fn_vec, seed=seeds))
-
-
-def restore_hash_partial(
-    seeds: npt.ArrayLike,
-    hash_fn_vec: Callable[
-        [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
-    ] = hash_document_with_seeds,
-) -> HashPartial:
-    """
-    @param seeds: seeds to use, ArrayLike
-    @param hash_fn_vec: hash function to use
-    @return: HashPartial object
-    """
-    return HashPartial(np.array(seeds), partial(hash_fn_vec, seed=seeds))
 
 
 def gen_signature_matrix(
