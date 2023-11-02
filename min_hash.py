@@ -10,6 +10,8 @@ import numpy.typing as npt
 import tiktoken
 from xxhash import xxh32, xxh32_intdigest
 
+import utils as utils
+
 enc = tiktoken.get_encoding("cl100k_base")
 # from nptyping import NDArray, Structure, Shape, String
 
@@ -79,7 +81,7 @@ def gen_hash_partial(
     @return: HashPartial object
     """
     seeds = gen_random_seeds(num_seeds)
-    return HashPartial(num_seeds, partial(hash_fn_vec, seed=seeds))
+    return HashPartial(seeds, partial(hash_fn_vec, seed=seeds))
 
 
 def restore_hash_partial(
@@ -93,7 +95,7 @@ def restore_hash_partial(
     @param hash_fn_vec: hash function to use
     @return: HashPartial object
     """
-    return HashPartial(seeds, partial(hash_fn_vec, seed=seeds))
+    return HashPartial(np.array(seeds), partial(hash_fn_vec, seed=seeds))
 
 
 def gen_signature_matrix(
@@ -104,7 +106,7 @@ def gen_signature_matrix(
     @param hasher: HashPartial type. Outputs an array of hashes for each seed
     @return: int64 x num_hashes
     """
-    res = np.zeros((tokens.shape[0]), dtype=np.int32)
+    res = np.zeros((tokens.shape[0], len(hasher)), dtype=np.int32)
     for i in range(tokens.shape[0]):
         res[i] = hasher.gen_hashes(tokens[i])
     return res
@@ -217,3 +219,15 @@ def lsh_buckets_vectorized(
 def hash_band(band: np.ndarray, seed: int = 42) -> int:
     """Hashes a single band (portion of the signature) for LSH."""
     return xxh32(band.tobytes(), seed=int(seed)).intdigest()
+
+
+def gen_sig_mat_for_each(
+    tokenlist: List[npt.NDArray[np.int32]], hasher: HashPartial
+) -> List[npt.NDArray[np.uint64]]:
+    """Compute the signature matrix for a list of tokenlists"""
+    sig_matrix = []
+    for i, tokens in enumerate(tokenlist):
+        if i % 25 == 0:
+            print(utils.progress_bar(i, len(tokenlist)))
+        sig_matrix.append(gen_signature_matrix(tokens, hasher))
+    return sig_matrix
