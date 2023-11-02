@@ -1,3 +1,5 @@
+# This is not efficient at all. am going to change so it calculates all the hashes at once in one vectorized function call. WIP
+import pickle
 from collections import defaultdict
 from functools import partial
 from typing import Callable, DefaultDict, List, Set
@@ -5,52 +7,88 @@ from typing import Callable, DefaultDict, List, Set
 import numpy as np
 import numpy.typing as npt
 import tiktoken
-from xxhash import xxh32
+from xxhash import xxh32, xxh32_intdigest
 
 enc = tiktoken.get_encoding("cl100k_base")
 # from nptyping import NDArray, Structure, Shape, String
 
+# load in mylist.pkl
+with open("my_list.pkl", "rb") as f:
+    mylist = pickle.load(f)
+# mylist = pickle.load(open("mylist.pkl", "rb"))
+#
+
 
 # I know there is probably a more vectorized way to do this, esp with the bytes, but whatever
-def hash_numpy(token: np.uint64, seed: np.uint64) -> np.uint64:
-    return xxh32(bytes(token), int(seed)).intdigest()
+def hash_document(tokenbyte: bytes, seed: np.int32) -> np.int64:
+    return xxh32_intdigest(tokenbyte, seed)
 
 
-hash_numpy_vec = np.vectorize(hash_numpy)
-
-HashElm = Callable[[npt.NDArray[np.str_]], np.uint64]
-
-HashSet = List[HashElm]
-_test_strings = [
-    "The quick brown fox jumps over the lazy dog. The dog was too lazy to react. The fox had a great time. In the distance, a bird chirped. The sun was setting, casting long shadows across the landscape. The fox looked around, its eyes gleaming in the fading light.",
-    "The lazy dog decided to sleep all day. The quick brown fox was too busy jumping around to notice. The grass was green and lush, a perfect bed for a lazy dog. The dog yawned and stretched, then settled down for a nap. The fox continued to jump around, oblivious to the dog's slumber.",
-    "The fox and the dog are good friends. They spend their days playing and jumping around. The forest was their playground, full of interesting smells and sights. They chased each other through the trees, their laughter echoing through the forest. At the end of the day, they would lie down side by side, content and tired.",
-    "The fox and the dog are good friends. hey spend their days playing heir playground, full of interesting smells and sights. They chased each other throughtired.",
-    "The fox and the are good friends. hey spend their days playing heir playground, full of interesting smells and sights. They chased each other throughtired.",
-    "In the heart of the ancient city, there stood a tall and slender tower. From its highest point, one could look out across the sprawling landscape, where buildings of all shapes and sizes jostled for space amidst the lush greenery of the surrounding parks and gardens.",
-    "In the heao whhhhat the f the ancient city, there stood a tall and slender tower. From its highest point, one could look out across the sprawling landscape, where buildings of all shapes and sizes jostled for space amidst the lush greenery of the surrounding parks and gardens.",
-    "The sun was setting, casting long shadows across the bustling city. The streets were filled with people, all hurrying to their various destinations. The air was filled with the sounds of chatter, laughter, and the occasional honk of a car horn.",
-    "In the quiet of the forest, the only sounds were the gentle rustling of leaves in the wind and the distant call of a bird. The air was fresh and clean, filled with the scent of damp earth and the faint hint of pine.",
-    "The ocean stretched out as far as the eye could see, its surface sparkling in the sunlight. Waves crashed against the shore, leaving behind a trail of white foam on the golden sand. Seagulls circled overhead, their cries echoing in the salty air.",
-    "The water bitch ass stretched out as far as the eye could see, its surface sparkling in the sunlight. Waves crashed against the shore, leaving behind a trail of white foam on the golden sand. Seagulls circled overhead, their cries echoing in the salty air.",
-    "The city was a hive of activity. Cars zoomed down the streets, their headlights cutting through the darkness. People walked briskly, their breath visible in the cold night air. The bright neon signs of shops and restaurants illuminated the sidewalks, casting colorful reflections on the wet pavement.",
-]
+hash_document_with_seeds = np.vectorize(
+    hash_document, excluded=["token"], otypes=[np.int64]
+)
 
 
-def hash_element(
-    tokens: npt.NDArray[np.uint64],
-    hash_gen_vec: Callable[[npt.NDArray, int], np.uint64],
-    salt: np.uint64,
-) -> HashElm:
-    # pad the salt with zeros
-    return hash_gen_vec(tokens, int(salt))
+class HashPartial:
+    """
+    Partial function with seeds baked in. Gen_hashes returns a 1 x __len__ array of hashes for each seed
+    """
+
+    def __init__(
+        self,
+        num_seeds: int,
+        hash_fn_vec: Callable[
+            [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
+        ] = hash_document_with_seeds,
+    ):
+        self.seeds = np.random.randint(0, 10000000, num_seeds)
+        self.gen_hashes = partial(hash_fn_vec, seed=self.seeds)
+
+    def __len__(self) -> int:
+        return self.seeds.shape[0]
 
 
-def gen_hash_functions(num_hashes: int, hash_element_fn=hash_element) -> HashSet:
+# Hash = List[HashElm]
+
+
+# @jax.jit
+# def hash_element(
+#     tokens: npt.NDArray[np.uint64],
+#     hash_gen_vec: Callable[[npt.NDArray, int], np.uint64],
+#     salt: np.uint64,
+# ) -> HashElm:
+#     # pad the salt with zeros
+#     return hash_gen_vec(tokens, int(salt))
+
+
+# def gen_hash_functions(num_hashes: int, hash_element_fn=hash_element) -> HashSet:
+#     """Generate a list of hash functions"""
+#     salt = np.random.randint(0, 10000000, num_hashes)
+#     # salt_strings = np.char.zfill(salt.astype(str), salt_len)[-salt_len:]
+#     return [partial(hash_element_fn, hash_gen_vec=hash_numpy_vec, salt=s) for s in salt]
+
+
+def gen_signature_matrix(
+    tokens: npt.NDArray[np.int32], hasher: HashPartial
+) -> npt.NDArray[np.int64]:
+    """
+    @param tokens: int32 x length of document
+    @param hasher: HashPartial type. Outputs an array of hashes for each seed
+    @return: int64 x num_hashes
+    """
+    res = np.zeros((tokens.shape[0]), dtype=np.int32)
+    for i in range(tokens.shape[0]):
+        res[i] = hasher.gen_hashes(tokens[i])
+    return res
+
+
+def gen_hash_partial(
+    num_hashes: int, hash_element_fn=hash_document_with_seeds
+) -> HashPartial:
     """Generate a list of hash functions"""
     salt = np.random.randint(0, 10000000, num_hashes)
     # salt_strings = np.char.zfill(salt.astype(str), salt_len)[-salt_len:]
-    return [partial(hash_element_fn, hash_gen_vec=hash_numpy_vec, salt=s) for s in salt]
+    return HashPartial(partial(hash_element_fn, seed=salt), salt)
 
 
 def compute_signature(
@@ -78,7 +116,7 @@ def jaccard_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> 
     return np.intersect1d(a, b).size / np.union1d(a, b).size
 
 
-def _test_gen_hash_functions(test_strings=_test_strings):
+def _test_gen_hash_functions(test_strings):
     """Test the hash function generator"""
     hash_functions = gen_hash_functions(20, 10)
     sigs = []
