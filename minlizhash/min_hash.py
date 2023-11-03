@@ -4,12 +4,11 @@ from typing import DefaultDict, List, Set
 
 import numpy as np
 import numpy.typing as npt
-import tiktoken
-import utils as utils
-from hasher import HashPartial, hash_document
 from xxhash import xxh32
 
-enc = tiktoken.get_encoding("cl100k_base")
+from . import utils
+from .hasher import Hasher, gen_signature_matrix, hash_document
+
 # from nptyping import NDArray, Structure, Shape, String
 
 # load in mylist.pkl
@@ -48,21 +47,6 @@ def get_min_for_each_seed(
     return hashes
 
 
-def gen_signature_matrix(
-    tokens: npt.NDArray[np.int32], hasher: HashPartial
-) -> npt.NDArray[np.int64]:
-    """
-    @param tokens: int32 x length of document
-    @param hasher: HashPartial type. Outputs an array of hashes for each seed
-    @return: int64 x num_hashes
-    """
-    res = np.zeros((tokens.shape[0], len(hasher)), dtype=np.int32)
-    for i in range(tokens.shape[0]):
-        res[i] = hasher.gen_hashes(tokens[i])
-    # get min for each column
-    return np.min(res, axis=0)
-
-
 #  return res
 
 
@@ -79,16 +63,6 @@ def simple_shingles_generator(text: str, k: int = 3) -> npt.NDArray[np.str_]:
     return np.fromiter(
         (text[i : i + k] for i in range(len(text) - k + 1)), dtype="<U" + str(k)
     )
-
-
-def cosine_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> float:
-    """Compute the cosine similarity between two vectors"""
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
-
-def jaccard_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> float:
-    """Compute the Jaccard similarity between two vectors"""
-    return np.intersect1d(a, b).size / np.union1d(a, b).size
 
 
 # get_signature_matrix([enc.encode_ordinary(t) for t in _test_strings], hashfns)
@@ -153,7 +127,7 @@ def hash_band(band: np.ndarray, seed: int = 42) -> int:
 
 
 def gen_sig_mat_for_each(
-    tokenlist: List[npt.NDArray[np.int32]], hasher: HashPartial
+    tokenlist: List[npt.NDArray[np.int32]], hasher: Hasher
 ) -> List[npt.NDArray[np.uint64]]:
     # Preallocate signature matrix array
     sig_matrix = np.empty((len(tokenlist), hasher.seeds.shape[0]), dtype=np.uint64)

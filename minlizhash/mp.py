@@ -4,11 +4,11 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 
-from min_hash import HashPartial, gen_signature_matrix
+from .min_hash import Hasher, gen_signature_matrix
 
 
 def gen_sig_mat_for_each_mp(
-    tokenlist: List[npt.NDArray[np.int32]], hasher: HashPartial
+    tokenlist: List[npt.NDArray[np.int32]], hasher: Hasher
 ) -> List[npt.NDArray[np.uint64]]:
     """Compute the signature matrix for a list of tokenlists"""
     with Pool() as p:

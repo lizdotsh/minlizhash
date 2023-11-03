@@ -7,6 +7,8 @@ import numpy as np
 import numpy.typing as npt
 from xxhash import xxh32_intdigest
 
+# from .min_hash import gen_signature_matrix
+
 
 def hash_document(tokenbyte: bytes, seed: np.int32) -> np.int64:
     return xxh32_intdigest(tokenbyte, seed)
@@ -21,6 +23,21 @@ hash_tokens_with_seed = np.vectorize(
 )
 
 
+def gen_signature_matrix(
+    tokens: npt.NDArray[np.int32], hasher
+) -> npt.NDArray[np.int64]:
+    """
+    @param tokens: int32 x length of document
+    @param hasher: hasher.Hasher type. Outputs an array of hashes for each seed
+    @return: int64 x num_hashes
+    """
+    res = np.zeros((tokens.shape[0], len(hasher)), dtype=np.int32)
+    for i in range(tokens.shape[0]):
+        res[i] = hasher.gen_hashes(tokens[i])
+    # get min for each column
+    return np.min(res, axis=0)
+
+
 @dataclass
 class Hasher:
     """
@@ -29,6 +46,9 @@ class Hasher:
 
     seeds: npt.NDArray[np.int32]
     gen_hashes: Callable[[np.int32], npt.NDArray[np.int64]]
+    sign: Callable[
+        [npt.NDArray[np.int32]], npt.NDArray[np.int64]
+    ] = gen_signature_matrix
 
     def __len__(self) -> int:
         return self.seeds.shape[0]
@@ -38,7 +58,7 @@ def _gen_random_seeds(length: int) -> npt.NDArray[np.int32]:
     return np.random.randint(0, 10000000, length)
 
 
-def generate(
+def create(
     num_seeds: int,
     hash_fn_vec: Callable[
         [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
