@@ -4,18 +4,10 @@ from typing import Callable, Protocol
 import numpy as np
 import numpy.typing as npt
 from xxhash import xxh32_intdigest
-
+from .types import TokenArray, DocumentSignature, PermutationSeeds, DocumentSigner
 # from .min_hash import gen_signature_matrix
 
 
-TokenArray = npt.NDArray[np.int32]
-DocumentSignature = npt.NDArray[np.int64]
-PermutationSeeds = npt.NDArray[np.int32]
-class DocumentSigner(Protocol):
-    hash_function: Callable[[bytes], np.uint64]
-    def __call__(self, tokens: TokenArray, seeds: PermutationSeeds) -> DocumentSignature:
-        ...
-    
 
 class Hasher:
     """Creates a Hasher object, which can be used to generate signatures for documents
