@@ -8,7 +8,8 @@ import tiktoken
 from .hasher import Hasher
 
 enc = tiktoken.get_encoding("cl100k_base")
-
+def BPE(s):
+    return enc.encode_ordinary(s)
 
 @dataclass
 class Document:
@@ -24,6 +25,7 @@ def create_document(
     preprocessor: Callable[[str], str] | None = None,
     postprocessor: Callable[[npt.NDArray[np.int32]], npt.NDArray[np.int32]] = None,
     hasher: Hasher | None = None,
+    tokenizer: Callable[[str], list[int]] = BPE,
 ) -> Document:
     if preprocessor:
         raw = preprocessor(raw)
@@ -31,7 +33,7 @@ def create_document(
         tokens = raw
         raw = ""
     else:
-        tokens = np.array(enc.encode_ordinary(raw))
+        tokens = np.array(tokenizer(raw))
     if postprocessor:
         tokens = postprocessor(tokens)
     if hasher:

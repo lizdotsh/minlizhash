@@ -58,11 +58,7 @@ def compute_signature(
 
 
 # Unused
-def simple_shingles_generator(text: str, k: int = 3) -> npt.NDArray[np.str_]:
-    """Generate shingles of length k from the text"""
-    return np.fromiter(
-        (text[i : i + k] for i in range(len(text) - k + 1)), dtype="<U" + str(k)
-    )
+
 
 
 # get_signature_matrix([enc.encode_ordinary(t) for t in _test_strings], hashfns)
