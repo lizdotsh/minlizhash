@@ -1,1 +1,1 @@
-from . import hasher, utils, min_hash, tokens, mp
+from . import hasher, utils, min_hash, tokens, mp, LSH
