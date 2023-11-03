@@ -1,6 +1,6 @@
 # This is not efficient at all. am going to change so it calculates all the hashes at once in one vectorized function call. WIP
 from collections import defaultdict
-from typing import DefaultDict, List, Set
+from typing import DefaultDict, List, Set, Callable
 
 import numpy as np
 import numpy.typing as npt
@@ -8,7 +8,7 @@ from xxhash import xxh32
 
 from . import utils
 from .hasher import Hasher, gen_signature_matrix, hash_document
-
+from .types import Document, TokenArray
 # from nptyping import NDArray, Structure, Shape, String
 
 # load in mylist.pkl
@@ -19,6 +19,27 @@ from .hasher import Hasher, gen_signature_matrix, hash_document
 
 
 # I know there is probably a more vectorized way to do this, esp with the bytes, but whatever
+
+
+def create_document(tokens: TokenArray, id: int) -> Document:
+    return {
+        "id": id,
+        "tokens": np.unique(tokens),
+        "signature": None
+    }
+
+def create_document_from_raw(raw: str, id: int, tokenizer: Callable[[str], list[int]]) -> Document:
+    return {
+        "id": id,
+        "raw": raw,
+        "tokens": np.unique(tokenizer(raw)),
+        "signature": None
+    }
+
+
+def sign_document(document: Document, hasher: Hasher) -> Document:
+    document["signature"] = hasher.gen_signature(document["tokens"])
+    return document
 
 
 def gen_min_hash_for_tokens(tokens: npt.NDArray[np.int32], seed: np.int32) -> np.int64:

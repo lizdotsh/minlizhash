@@ -11,8 +11,11 @@ class DocumentSigner(Protocol):
     def __call__(self, tokens: TokenArray, seeds: PermutationSeeds) -> DocumentSignature:
         ...
 
+TextPreprocessor = Callable[[str], str]
+TextTokenizer = Callable[[str], list[int]]
 
 class Document(TypedDict):
     id: int
     tokens: TokenArray
     signature: DocumentSignature | None
+
