@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import numpy.typing as npt
 
@@ -18,3 +20,9 @@ def cosine_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> f
 def jaccard_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> float:
     """Compute the Jaccard similarity between two vectors"""
     return np.intersect1d(a, b).size / np.union1d(a, b).size
+
+
+def load_pickle(filename):
+    """Load a pickle file"""
+    with open(filename, "rb") as f:
+        return pickle.load(f)

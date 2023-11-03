@@ -53,12 +53,15 @@ class Hasher:
     def __len__(self) -> int:
         return self.seeds.shape[0]
 
+    def save(self, filename: str) -> None:
+        np.save(filename, self.seeds)
+
 
 def _gen_random_seeds(length: int) -> npt.NDArray[np.int32]:
     return np.random.randint(0, 10000000, length)
 
 
-def create(
+def create_hasher(
     num_seeds: int,
     hash_fn_vec: Callable[
         [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
@@ -74,7 +77,7 @@ def create(
     return Hasher(seeds, partial(hash_fn_vec, seed=seeds))
 
 
-def restore_from_seeds(
+def restore_hasher_from_seeds(
     seeds: npt.ArrayLike,
     hash_fn_vec: Callable[
         [np.int32, npt.NDArray[np.int32]], npt.NDArray[np.int64]
@@ -89,15 +92,11 @@ def restore_from_seeds(
     return Hasher(np.array(seeds), partial(hash_fn_vec, seed=seeds))
 
 
-def restore_from_file(filename: str) -> Hasher:
+def restore_hasher_from_file(filename: str) -> Hasher:
     return Hasher(
         _load_seeds(filename),
         partial(hash_document_with_seeds, seed=_load_seeds(filename)),
     )
-
-
-def save(hasher: Hasher, filename: str):
-    np.save(filename, hasher.seeds)
 
 
 def _load_seeds(filename: str) -> npt.NDArray[np.int32]:
