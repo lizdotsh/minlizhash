@@ -2,3 +2,10 @@ commoncrawl/*
 .DS_Store
 .DS_store
 env/*
+*.pickle
+*.npy
+__pycache__/*
+
+# pycache
+__pycache__/
+*.pyc
