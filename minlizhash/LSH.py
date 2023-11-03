@@ -5,7 +5,7 @@ from typing import Callable, List, Set, DefaultDict
 import numpy as np
 import pickle
 from collections import defaultdict
-from tokens import Document
+from .tokens import Document
 
 
 class LSHIndex:
