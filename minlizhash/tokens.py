@@ -37,7 +37,7 @@ def create_document(
     if postprocessor:
         tokens = postprocessor(tokens)
     if hasher:
-        signature = hasher(tokens)
+        signature = hasher.sign(hasher.gen_hashes, tokens)
         return Document(id, raw, tokens=tokens, signature=signature)
     return Document(id, raw, tokens=tokens)
 
