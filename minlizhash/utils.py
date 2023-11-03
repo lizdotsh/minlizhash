@@ -26,3 +26,12 @@ def load_pickle(filename):
     """Load a pickle file"""
     with open(filename, "rb") as f:
         return pickle.load(f)
+
+
+def simple_shingles_generator(text: str, k: int = 3) -> npt.NDArray[np.str_]:
+    """Generate shingles of length k from the text
+    Made before moving over to using BPE; figured I should keep it around even though it probably won't work 
+    """
+    return np.fromiter(
+        (text[i : i + k] for i in range(len(text) - k + 1)), dtype="<U" + str(k)
+    )
