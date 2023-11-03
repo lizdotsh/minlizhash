@@ -1,18 +1,29 @@
 # Everything LSH related lives here
 
 from dataclasses import dataclass
-from typing import Callable, List, Set, DefaultDict
+from typing import Callable, List, Set, DefaultDict, Protocol
 import numpy as np
 import pickle
 from collections import defaultdict
 from .tokens import Document
 
+LSH_Dictionary = DefaultDict[int, list[int]]
 
-class LSHIndex:
-    def __init__(self, lsh_dict: dict[int, list[int]], seed: int, num_bands: int, num_seeds: int):
+
+class LSH(Protocol):
+    def add(self, document: Document):
+        """Add item to the LSH index."""
+        ...
+    def save(self, filename: str):
+        """Save the LSH index to a file."""
+        ...
+    
+
+class LSHIndex(LSH):
+    def __init__(self, lsh_dict: LSH_Dictionary, seed: int, num_bands: int, num_seeds: int):
         self.lsh_dict = lsh_dict
-        self.seed = seed
-        self.num_bands = num_bands
+        self._seed = seed
+        self._num_bands = num_bands
         self.num_seeds = num_seeds
         self.buckets = [defaultdict(list) for _ in range(self.num_bands)]
         self.rows_per_band = self.num_seeds // num_bands

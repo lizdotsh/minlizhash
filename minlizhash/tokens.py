@@ -7,59 +7,68 @@ import tiktoken
 
 from .hasher import Hasher
 
+from .types import TokenArray, DocumentSignature, Document
+
+
 enc = tiktoken.get_encoding("cl100k_base")
 def BPE(s):
     return enc.encode_ordinary(s)
 
-@dataclass
-class Document:
-    id: int
-    raw: str
-    tokens: np.ndarray | None = None
-    signature: np.ndarray | None = None
 
 
-def create_document(
-    raw: str | npt.NDArray[np.int32],
-    id: int,
-    preprocessor: Callable[[str], str] | None = None,
-    postprocessor: Callable[[npt.NDArray[np.int32]], npt.NDArray[np.int32]] = None,
-    hasher: Hasher | None = None,
-    tokenizer: Callable[[str], list[int]] = BPE,
-) -> Document:
-    if preprocessor:
-        raw = preprocessor(raw)
-    if isinstance(raw, np.ndarray):
-        tokens = raw
-        raw = ""
-    else:
-        tokens = np.array(tokenizer(raw))
-    if postprocessor:
-        tokens = postprocessor(tokens)
-    if hasher:
-        signature = hasher.sign(hasher.gen_hashes, tokens)
-        return Document(id, raw, tokens=tokens, signature=signature)
-    return Document(id, raw, tokens=tokens)
+
+#@dataclass
+# class Document:
+#     id: int
+#     raw: str
+#     tokens: TokenArray
+#     signature: DocumentSignature | None = None
 
 
-def lst_of_strings_to_documents(
-    lst: list[str | npt.NDArray[np.int32]],
-    preprocessor: Callable[[str], str] | None = None,
-    postprocessor: Callable[[npt.NDArray[np.int32]], npt.NDArray[np.int32]] = None,
-    hasher: Hasher | None = None,
-) -> list[Document]:
-    return [
-        create_document(
-            raw,
-            i,
-            preprocessor=preprocessor,
-            postprocessor=postprocessor,
-            hasher=hasher,
-        )
-        for i, raw in enumerate(lst)
-    ]
+#def create_document(
+#     raw: str | npt.NDArray[np.int32],
+#     id: int,
+#     preprocessor: Callable[[str], str] | None = None,
+#     postprocessor: Callable[[npt.NDArray[np.int32]], npt.NDArray[np.int32]] = None,
+#     hasher: Hasher | None = None,
+#     tokenizer: Callable[[str], list[int]] = BPE,
+# ) -> Document:
+#     if preprocessor:
+#         raw = preprocessor(raw)
+#     if isinstance(raw, np.ndarray):
+#         tokens = raw
+#         raw = ""
+#     else:
+#         tokens = np.array(tokenizer(raw))
+#     if postprocessor:
+#         tokens = postprocessor(tokens)
+#     if hasher:
+#         signature = hasher.sign(hasher.gen_hashes, tokens)
+#         return Document(id, raw, tokens, signature = signature)
+#     return {
+#         "id": id,
+#         "raw": raw,
+#         "tokens": tokens,
+#         "signature": None,
+#     }
+#Document(id, raw, tokens=tokens)
 
 
-def sign_document_lst(documentlist: List[Document]):
-    for doc in documentlist:
-        doc.signature = doc.hasher.gen_hashes(doc.tokens)
+# def lst_of_strings_to_documents(
+#     lst: list[str | npt.NDArray[np.int32]],
+#     preprocessor: Callable[[str], str] | None = None,
+#     postprocessor: Callable[[npt.NDArray[np.int32]], npt.NDArray[np.int32]] = None,
+#     hasher: Hasher | None = None,
+# ) -> list[Document]:
+#     return [
+#         create_document(
+#             raw,
+#             i,
+#             preprocessor=preprocessor,
+#             postprocessor=postprocessor,
+#             hasher=hasher,
+#         )
+#         for i, raw in enumerate(lst)
+#     ]
+
+
