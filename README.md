@@ -1,3 +1,5 @@
-# Web Crawl Processing
+# WIP
 
-Not meant to be performant or actually usd, but as a learning opportunity.
+WIP implimentation of the minhash algorithm (LSH coming soon) for comaring document similarity. 
+
+Not meant to be performant or actually usd, created as learning exercise.
