@@ -70,9 +70,9 @@ class DocumentSignerMinBefore(DocumentSigner):
         
         
     
-def gen_random_seeds(num_permutations: int) -> npt.NDArray[np.int32]:
+def gen_random_seeds(num_permutations: int) -> PermutationSeeds:
     return np.random.randint(0, 10000000, num_permutations)
 
 
-def load_seeds(filename: str) -> npt.NDArray[np.int32]:
+def load_seeds(filename: str) -> PermutationSeeds:
     return np.load(filename)
