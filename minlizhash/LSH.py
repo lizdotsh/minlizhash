@@ -37,13 +37,13 @@ class LSHIndex(LSH):
         num_bands: int,
         num_permutations: int,
         seed: int = 0,
-        hash_function: Callable[[bytes], int] = xxh32_intdigest,
+        hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
     ):
         if num_permutations % num_bands != 0:
             raise ValueError(
                 f"Number of bands must be divisible by the number of permutations: {num_permutations}"
             )
-        self._seed = seed
+        self.seed = seed
         self._num_bands = num_bands
         self._num_permutations = num_permutations
         self.buckets: LSH_Dictionary = [
@@ -58,7 +58,7 @@ class LSHIndex(LSH):
         for i in range(self._num_bands):
             start_idx = i * self._rows_per_band
             end_idx = (i + 1) * self._rows_per_band
-            yield self._hash_function(signature[start_idx:end_idx].tobytes())
+            yield self._hash_function(signature[start_idx:end_idx].tobytes(), self.seed)
 
     def _signature_to_hashed_bands(
         self, signature: DocumentSignature
@@ -66,7 +66,7 @@ class LSHIndex(LSH):
         """Split the signature into bands and hash them"""
         return np.array(
             [
-                self._hash_function(band.tobytes(), self._seed)
+                self._hash_function(band.tobytes(), self.seed)
                 for band in np.hsplit(signature, self._num_bands)
             ],
             dtype=np.uint64,
@@ -111,7 +111,7 @@ class LSHIndex(LSH):
         data = {
             "num_bands": self._num_bands,
             "num_permutations": self._num_permutations,
-            "seed": self._seed,
+            "seed": self.seed,
             "buckets": self.buckets,
         }
         with open(filename, "wb") as f:
@@ -147,6 +147,10 @@ class LSHIndex(LSH):
 
 
 class LSHIndex_Projection(LSH):
+    """
+    Only partly implimented. Do not use.
+    """
+
     def __init__(self, seed: int, num_bands: int, hasher: Hasher):
         # Make sure the number of bands is // 32:
         if num_bands % 32 != 0:
@@ -158,8 +162,11 @@ class LSHIndex_Projection(LSH):
         self.buckets: List[DefaultDict[Any, List[Any]]] = [
             defaultdict(list) for _ in range(self._num_bands)
         ]
-        self.rows_per_band = self._num_permutationss // num_bands
+        self.rows_per_band = self._num_permutations // num_bands
         self._projection_array = self._projections()
+        self._index_hashes: npt.NDArray[np.uint32] = np.empty(
+            (0, self._num_bands), dtype=np.uint32
+        )
 
     def _projections(self):
         """Use Normal: https://stackoverflow.com/questions/59954810/generate-random-points-on-10-dimensional-unit-sphere"""

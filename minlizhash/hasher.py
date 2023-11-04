@@ -19,7 +19,9 @@ from .types import (
 class DocumentSignerMinAfter(DocumentSigner):
     """Signs the document token by token, vectorizing across the seeds for each iteration"""
 
-    def __init__(self, hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest):
+    def __init__(
+        self, hash_function: Callable[[bytes, int], np.uint64] = xxh32_intdigest
+    ):
         self.hash_function = hash_function
         self._hash_function_vec = np.vectorize(
             hash_function, excluded=["token"], otypes=[np.uint64]
@@ -38,7 +40,9 @@ class DocumentSignerMinAfter(DocumentSigner):
 class DocumentSignerMinBefore(DocumentSigner):
     """Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration"""
 
-    def __init__(self, hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest):
+    def __init__(
+        self, hash_function: Callable[[bytes, int], np.uint64] = xxh32_intdigest
+    ):
         self.hash_function = hash_function
 
     # self._hash_function_vec = np.vectorize(hash_function, excluded=['seed'], otypes=[np.uint64])

@@ -8,17 +8,6 @@ from .hasher import Hasher
 from .types import Document, List, TokenArray
 from .utils import document_np_to_list
 
-# from nptyping import NDArray, Structure, Shape, String
-
-# load in mylist.pkl
-# with open("my_list.pkl", "rb") as f:
-# mylist = pickle.load(f)
-# mylist = pickle.load(open("mylist.pkl", "rb"))
-#
-
-
-# I know there is probably a more vectorized way to do this, esp with the bytes, but whatever
-
 
 def create_document(tokens: TokenArray, id: int) -> Document:
     return {"id": id, "tokens": np.unique(tokens), "signature": None}

@@ -9,7 +9,7 @@ PermutationSeeds: TypeAlias = npt.NDArray[np.int32]
 
 
 class DocumentSigner(Protocol):
-    hash_function: Callable[[bytes], np.uint64]
+    hash_function: Callable[[bytes, int], np.uint64]
 
     def __call__(
         self, tokens: TokenArray, seeds: PermutationSeeds
