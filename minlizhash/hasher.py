@@ -105,9 +105,6 @@ class Hasher:
     def sign_document_inplace(self, document: Document) -> None:
         document["signature"] = self.gen_signature(document["tokens"])
 
-    def save(self, filename: str) -> None:
-        np.save(filename, self.seeds)
-
     @staticmethod
     def _seeds_from_seed(seed: int, num_permutations: int) -> PermutationSeeds:
         rng = np.random.default_rng(seed)
@@ -122,5 +119,4 @@ def gen_random_seeds(num_permutations: int) -> PermutationSeeds:
 
 
 def load_seeds(filename: str) -> PermutationSeeds:
-    return np.load(filename)
     return np.load(filename)
