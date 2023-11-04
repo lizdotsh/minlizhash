@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "minlizhash"
+version = "0.1.0"
+description = "A simple MinHash LSH Implimentation from scratch"
+authors = ["Liz Goodwin <work@lizgood.win>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+numpy = "^1.26.1"
+xxhash = "^3.4.1"
+tdqm = "^0.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

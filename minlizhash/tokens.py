@@ -1,65 +1,44 @@
-from dataclasses import dataclass
-from typing import Callable, List
+import re
+import unicodedata
 
 import numpy as np
-import numpy.typing as npt
 import tiktoken
 
-from .hasher import Hasher
+from .types import TextPreprocessor, TextTokenizer, TokenArray
 
+punctuation_pattern = re.compile(r"[^\w\s]")
+whitespace_pattern = re.compile(r"\s+")
 enc = tiktoken.get_encoding("cl100k_base")
-def BPE(s):
-    return enc.encode_ordinary(s)
-
-@dataclass
-class Document:
-    id: int
-    raw: str
-    tokens: np.ndarray | None = None
-    signature: np.ndarray | None = None
 
 
-def create_document(
-    raw: str | npt.NDArray[np.int32],
-    id: int,
-    preprocessor: Callable[[str], str] | None = None,
-    postprocessor: Callable[[npt.NDArray[np.int32]], npt.NDArray[np.int32]] = None,
-    hasher: Hasher | None = None,
-    tokenizer: Callable[[str], list[int]] = BPE,
-) -> Document:
-    if preprocessor:
-        raw = preprocessor(raw)
-    if isinstance(raw, np.ndarray):
-        tokens = raw
-        raw = ""
-    else:
-        tokens = np.array(tokenizer(raw))
-    if postprocessor:
-        tokens = postprocessor(tokens)
-    if hasher:
-        signature = hasher.sign(hasher.gen_hashes, tokens)
-        return Document(id, raw, tokens=tokens, signature=signature)
-    return Document(id, raw, tokens=tokens)
+def BPE(s: str) -> TokenArray:
+    return np.array(enc.encode_ordinary(s), dtype=np.int32)
 
 
-def lst_of_strings_to_documents(
-    lst: list[str | npt.NDArray[np.int32]],
-    preprocessor: Callable[[str], str] | None = None,
-    postprocessor: Callable[[npt.NDArray[np.int32]], npt.NDArray[np.int32]] = None,
-    hasher: Hasher | None = None,
-) -> list[Document]:
-    return [
-        create_document(
-            raw,
-            i,
-            preprocessor=preprocessor,
-            postprocessor=postprocessor,
-            hasher=hasher,
-        )
-        for i, raw in enumerate(lst)
-    ]
+def preprocessor(s: str) -> str:
+    """
+    WIP - BASIC
+    Preprocesses a string for tokenization
+    Turns to lowercase, removes punctuation, normalizes whitespace, normalizes unicode
+    """
+    s = s.lower()
+    s = punctuation_pattern.sub("", s)
+    # Normalize whitespace
+    s = whitespace_pattern.sub(" ", s).strip()
+
+    # Normalize unicode
+    s = unicodedata.normalize("NFD", s)
+
+    return "".join([c for c in s if not unicodedata.combining(c)])
 
 
-def sign_document_lst(documentlist: List[Document]):
-    for doc in documentlist:
-        doc.signature = doc.hasher.gen_hashes(doc.tokens)
+def create_ngrams(
+    raw: str,
+    preprocessor: TextPreprocessor = preprocessor,
+    tokenizer: TextTokenizer = BPE,
+) -> TokenArray:
+    """
+    WIP - BASIC
+    Creates ngrams from a string
+    """
+    return np.unique(tokenizer(preprocessor(raw)), dtype=np.int32)

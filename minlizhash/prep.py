@@ -1,9 +1,9 @@
 # For preparing data for minlizhash
 
-import trafilatura as tr
-from tokens import Document
-from trafilatura.external import try_justext, try_readability
-from warcio.archiveiterator import ArchiveIterator
+# import trafilatura as tr
+# from tokens import Document
+# from trafilatura.external import try_justext, try_readability
+# from warcio.archiveiterator import ArchiveIterator
 
 # @dataclass
 # class WebDocument(Document):
