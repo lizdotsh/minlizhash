@@ -4,7 +4,7 @@ import numpy.typing as npt
 import numpy as np
 
 TokenArray = npt.NDArray[np.int32]
-DocumentSignature = npt.NDArray[np.int64]
+DocumentSignature = npt.NDArray[np.uint64]
 PermutationSeeds = npt.NDArray[np.int32]
 class DocumentSigner(Protocol):
     hash_function: Callable[[bytes], np.uint64]
