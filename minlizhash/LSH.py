@@ -3,14 +3,15 @@
 import pickle
 from collections import defaultdict
 from itertools import combinations
-from typing import Callable, DefaultDict, List, Protocol, Tuple
+from typing import Any, Callable, DefaultDict, Dict, List, Tuple
 
 import numpy as np
 import numpy.typing as npt
 from xxhash import xxh32_intdigest
 
 from .hasher import Hasher
-from .types import Document, DocumentSignature
+from .types import LSH, Document, DocumentSignature
+from .utils import jaccard_similarity
 
 LSH_Dictionary = List[DefaultDict[int, list[int]]]
 
@@ -30,29 +31,19 @@ s01 = np.uint64(m4 & mask)
 num_bytes_64 = 8
 
 
-class LSH(Protocol):
-    def add(self, document: Document):
-        """Add item to the LSH index."""
-        ...
-
-    def save(self, filename: str):
-        """Save the LSH index to a file."""
-        ...
-
-
-class LSHIndex_Banding(LSH):
+class LSHIndex(LSH):
     def __init__(
         self,
         num_bands: int,
         num_permutations: int,
         seed: int = 0,
-        hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest,
+        hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
     ):
         if num_permutations % num_bands != 0:
             raise ValueError(
-                f"Number of bands must be divisible by the number of permutations: {len(hasher)}"
+                f"Number of bands must be divisible by the number of permutations: {num_permutations}"
             )
-        self._seed = seed
+        self.seed = seed
         self._num_bands = num_bands
         self._num_permutations = num_permutations
         self.buckets: LSH_Dictionary = [
@@ -67,7 +58,7 @@ class LSHIndex_Banding(LSH):
         for i in range(self._num_bands):
             start_idx = i * self._rows_per_band
             end_idx = (i + 1) * self._rows_per_band
-            yield self._hash_function(signature[start_idx:end_idx].tobytes())
+            yield self._hash_function(signature[start_idx:end_idx].tobytes(), self.seed)
 
     def _signature_to_hashed_bands(
         self, signature: DocumentSignature
@@ -75,7 +66,7 @@ class LSHIndex_Banding(LSH):
         """Split the signature into bands and hash them"""
         return np.array(
             [
-                self._hash_function(band.tobytes(), self._seed)
+                self._hash_function(band.tobytes(), self.seed)
                 for band in np.hsplit(signature, self._num_bands)
             ],
             dtype=np.uint64,
@@ -115,12 +106,12 @@ class LSHIndex_Banding(LSH):
                     candidates.add((a, b))
         return candidates
 
-    def save_pickle(self, filename: str):
-        """Save the LSH index to a file."""
+    def save(self, filename: str):
+        """Save the LSH index to a pickle."""
         data = {
             "num_bands": self._num_bands,
             "num_permutations": self._num_permutations,
-            "seed": self._seed,
+            "seed": self.seed,
             "buckets": self.buckets,
         }
         with open(filename, "wb") as f:
@@ -136,20 +127,18 @@ class LSHIndex_Banding(LSH):
                 self.buckets[i][hash] = list(set(self.buckets[i][hash]))
 
     @staticmethod
-    def load_pickle(filename: str):
-        """Load the LSH index from a file."""
+    def load(filename: str):
+        """Load the LSH index from a pickle"""
         with open(filename, "rb") as f:
             data = pickle.load(f)
-        lsh = LSHIndex_Banding(
-            data["num_bands"], data["num_permutations"], data["seed"]
-        )
+        lsh = LSHIndex(data["num_bands"], data["num_permutations"], data["seed"])
         lsh.buckets = data["buckets"]
         return lsh
 
     @staticmethod
     def from_hasher(hasher: Hasher, num_bands: int):
         """Create a LSHIndex_Banding from a Hasher object."""
-        return LSHIndex_Banding(
+        return LSHIndex(
             num_bands,
             len(hasher),
             hasher.rng_seed,
@@ -158,6 +147,10 @@ class LSHIndex_Banding(LSH):
 
 
 class LSHIndex_Projection(LSH):
+    """
+    Only partly implimented. Do not use.
+    """
+
     def __init__(self, seed: int, num_bands: int, hasher: Hasher):
         # Make sure the number of bands is // 32:
         if num_bands % 32 != 0:
@@ -166,9 +159,14 @@ class LSHIndex_Projection(LSH):
         self._num_bands = num_bands
         self._rng = np.random.default_rng(seed)
         self._num_permutations = len(hasher)
-        self.buckets = [defaultdict(list) for _ in range(self.num_bands)]
-        self.rows_per_band = self.num_seeds // num_bands
-        self._projections = self._projections()
+        self.buckets: List[DefaultDict[Any, List[Any]]] = [
+            defaultdict(list) for _ in range(self._num_bands)
+        ]
+        self.rows_per_band = self._num_permutations // num_bands
+        self._projection_array = self._projections()
+        self._index_hashes: npt.NDArray[np.uint32] = np.empty(
+            (0, self._num_bands), dtype=np.uint32
+        )
 
     def _projections(self):
         """Use Normal: https://stackoverflow.com/questions/59954810/generate-random-points-on-10-dimensional-unit-sphere"""
@@ -206,3 +204,30 @@ class LSHIndex_Projection(LSH):
     def _hamming_distance(self, a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]):
         """Compute Hamming distance between two arrays of 64 bit integers."""
         return self._bitcount_64(a ^ b)
+
+
+def check_candidatelist(
+    documentlist: List[Document] | Dict[Any, Document],
+    candidatelist: List[Tuple[int, int]],
+    exact=False,
+) -> List[Tuple[int, int, float]]:
+    """Check the candidates and return the actual Jaccard similarity.
+    ID _MUST_ be the index in the documentlist.
+    Alternatively, pass in a dictionary with the ID as the key.
+
+    Args:
+        documentlist: List of documents
+        candidatelist: List of candidate pairs
+        exact: If True, compute the exact Jaccard similarity. If False, use the MinHash signature
+    Returns:
+        List of tuples (a, b, jaccard_similarity)
+    """
+    key = "signature" if exact else "tokens"
+    return [
+        (
+            a,
+            b,
+            jaccard_similarity(documentlist[a][key], documentlist[b][key]),
+        )
+        for a, b in candidatelist
+    ]
