@@ -42,14 +42,18 @@ class DocumentSignerMinBefore(DocumentSigner):
         self.hash_function = hash_function
 
     # self._hash_function_vec = np.vectorize(hash_function, excluded=['seed'], otypes=[np.uint64])
-    def _hash_single_seed(self, tokens: TokenArray, seed: np.int32) -> np.uint64:
-        return np.min([self.hash_function(token.tobytes(), seed) for token in tokens])
+    def _hash_single_seed(self, tokens: TokenArray, seed: int) -> np.uint64:
+        empty = np.empty((tokens.shape[0],), dtype=np.uint64)
+        for i in range(tokens.shape[0]):
+            empty[i] = self.hash_function(tokens[i].tobytes(), seed)
+        return empty.min()
 
     def __call__(
         self, tokens: TokenArray, seeds: PermutationSeeds
     ) -> DocumentSignature:
         return np.array(
-            [self._hash_single_seed(tokens, seed) for seed in seeds], dtype=np.uint64
+            [self._hash_single_seed(tokens, int(seed)) for seed in seeds],
+            dtype=np.uint64,
         )
 
 
@@ -86,8 +90,13 @@ class Hasher:
         return self.document_signer(tokens, self.seeds)
 
     def sign_document(self, document: Document) -> Document:
+        # DO NOT MODIFY INPLACE
+        new_doc = document.copy()
+        new_doc["signature"] = self.gen_signature(document["tokens"])
+        return new_doc
+
+    def sign_document_inplace(self, document: Document) -> None:
         document["signature"] = self.gen_signature(document["tokens"])
-        return document
 
     def save(self, filename: str) -> None:
         np.save(filename, self.seeds)
