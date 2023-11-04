@@ -75,8 +75,8 @@ class Hasher:
 
     def __init__(
         self,
+        seed: int,
         num_permutations: int = 150,
-        seed: int | None = None,
         document_signer: DocumentSigner = DocumentSignerMinBefore(
             hash_function=xxh32_intdigest
         ),

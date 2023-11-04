@@ -1,11 +1,11 @@
-from typing import Callable, List, Protocol, Tuple, TypedDict
+from typing import Callable, List, NotRequired, Protocol, Tuple, TypeAlias, TypedDict
 
 import numpy as np
 import numpy.typing as npt
 
-TokenArray = npt.NDArray[np.int32]
-DocumentSignature = npt.NDArray[np.uint64]
-PermutationSeeds = npt.NDArray[np.int32]
+TokenArray: TypeAlias = npt.NDArray[np.int32]
+DocumentSignature: TypeAlias = npt.NDArray[np.uint64]
+PermutationSeeds: TypeAlias = npt.NDArray[np.int32]
 
 
 class DocumentSigner(Protocol):
@@ -17,14 +17,14 @@ class DocumentSigner(Protocol):
         ...
 
 
-TextPreprocessor = Callable[[str], str]
-TextTokenizer = Callable[[str], list[int]]
+TextPreprocessor: TypeAlias = Callable[[str], str]
+TextTokenizer: TypeAlias = Callable[[str], list[int]]
 
 
 class Document(TypedDict):
     id: int
     tokens: TokenArray
-    signature: DocumentSignature | None
+    signature: NotRequired[DocumentSignature]
 
 
 class LSH(Protocol):

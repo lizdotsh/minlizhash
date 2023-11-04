@@ -37,11 +37,11 @@ class LSHIndex(LSH):
         num_bands: int,
         num_permutations: int,
         seed: int = 0,
-        hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest,
+        hash_function: Callable[[bytes], int] = xxh32_intdigest,
     ):
         if num_permutations % num_bands != 0:
             raise ValueError(
-                f"Number of bands must be divisible by the number of permutations: {len(hasher)}"
+                f"Number of bands must be divisible by the number of permutations: {num_permutations}"
             )
         self._seed = seed
         self._num_bands = num_bands
@@ -155,9 +155,11 @@ class LSHIndex_Projection(LSH):
         self._num_bands = num_bands
         self._rng = np.random.default_rng(seed)
         self._num_permutations = len(hasher)
-        self.buckets = [defaultdict(list) for _ in range(self.num_bands)]
-        self.rows_per_band = self.num_seeds // num_bands
-        self._projections = self._projections()
+        self.buckets: List[DefaultDict[Any, List[Any]]] = [
+            defaultdict(list) for _ in range(self._num_bands)
+        ]
+        self.rows_per_band = self._num_permutationss // num_bands
+        self._projection_array = self._projections()
 
     def _projections(self):
         """Use Normal: https://stackoverflow.com/questions/59954810/generate-random-points-on-10-dimensional-unit-sphere"""

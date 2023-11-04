@@ -17,6 +17,7 @@ jsonlines = "^4.0.0"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.26.0"
+mypy = "^1.6.1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -29,9 +29,7 @@ def create_document_from_raw(
 ) -> Document:
     return {
         "id": id,
-        "raw": raw,
         "tokens": np.unique(tokenizer(raw)),
-        "signature": None,
     }
 
 
