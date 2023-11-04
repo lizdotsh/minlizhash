@@ -4,13 +4,15 @@ from typing import Callable
 import numpy as np
 import numpy.typing as npt
 from xxhash import xxh32_intdigest
+
 from .types import (
-    TokenArray,
-    DocumentSignature,
-    PermutationSeeds,
-    DocumentSigner,
     Document,
+    DocumentSignature,
+    DocumentSigner,
+    PermutationSeeds,
+    TokenArray,
 )
+
 # from .min_hash import gen_signature_matrix
 
 
@@ -50,9 +52,12 @@ class DocumentSignerMinBefore(DocumentSigner):
             [self._hash_single_seed(tokens, seed) for seed in seeds], dtype=np.uint64
         )
 
+
 def gen_random_seeds_from_seed(num_permutations: int, seed: int) -> PermutationSeeds:
     rng = np.random.default_rng(seed)
     return rng.integers(0, 10000000, size=(num_permutations, 1), dtype=np.int32)
+
+
 class Hasher:
     """Creates a Hasher object, which can be used to generate signatures for documents
     Args:
@@ -73,8 +78,9 @@ class Hasher:
         ),
     ):
         self.num_permutations = num_permutations
-        self.seeds = Hasher._seeds_from_seed(num_permutations, seed)
+        self.rng_seed = seed
         self.document_signer = document_signer
+        self.seeds = Hasher._seeds_from_seed(self.rng_seed, num_permutations)
 
     def gen_signature(self, tokens: TokenArray) -> DocumentSignature:
         return self.document_signer(tokens, self.seeds)
@@ -87,7 +93,7 @@ class Hasher:
         np.save(filename, self.seeds)
 
     @staticmethod
-    def _seeds_from_seed(num_permutations, seed: int) -> PermutationSeeds:
+    def _seeds_from_seed(seed: int, num_permutations: int) -> PermutationSeeds:
         rng = np.random.default_rng(seed)
         return rng.integers(0, 10000000, size=(num_permutations, 1), dtype=np.int32)
 

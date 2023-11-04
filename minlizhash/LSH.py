@@ -40,17 +40,23 @@ class LSH(Protocol):
         ...
 
 
-class LSHIndex(LSH):
-    def __init__(
-        self, lsh_dict: LSH_Dictionary, seed: int, num_bands: int, num_seeds: int
-    ):
-        self.lsh_dict = lsh_dict
-        self._seed = seed
+class LSHIndex_Banding(LSH):
+    def __init__(self, num_bands: int, hasher: Hasher):
+        if len(hasher) % num_bands != 0:
+            raise ValueError(
+                f"Number of bands must be divisible by the number of permutations: {len(hasher)}"
+            )
+        self._seed = hasher.rng_seed
         self._num_bands = num_bands
-        self.num_seeds = num_seeds
+        self._rng = np.random.default_rng(self._seed)
+        self._num_permutations = len(hasher)
+        self.buckets = [defaultdict(list) for _ in range(self.num_bands)]
+        self.rows_per_band = self._num_permutations // num_bands
+
         self.buckets = [defaultdict(list) for _ in range(self.num_bands)]
         self.rows_per_band = self.num_seeds // num_bands
 
+    def _hash 
     def add(self, document: Document):
         """Add item to the LSH index."""
         if len(document.signature) != self.num_seeds:
@@ -70,7 +76,7 @@ class LSHIndex(LSH):
             pickle.dump(self, f)
 
 
-class LSHIdx(LSH):
+class LSHIndex_Projection(LSH):
     def __init__(self, seed: int, num_bands: int, hasher: Hasher):
         # Make sure the number of bands is // 32:
         if num_bands % 32 != 0:
@@ -85,10 +91,10 @@ class LSHIdx(LSH):
 
     def _projections(self):
         """Use Normal: https://stackoverflow.com/questions/59954810/generate-random-points-on-10-dimensional-unit-sphere"""
-        projections = self._rng.normal(size=(self._permutations, self._num_bands))
+        projections = self._rng.normal(size=(self._num_permutations, self._num_bands))
         return projections / np.linalg.norm(projections, axis=1, keepdims=True)
 
-    def _index(self, query: npt.NDArray[npt.uint64]):
+    def _index(self, query: npt.NDArray[np.uint64]):
         """Index np array of queries (shape (num_queries, num_permutations))"""
         hashes = np.packbits(query.dot(self._projections) >= 0, bitorder="little").view(
             np.uint32
@@ -96,7 +102,7 @@ class LSHIdx(LSH):
         self._index_hashes = np.vstack(self._index_hashes, hashes)
 
     @staticmethod
-    def _bitcount_64(arr: npt.NPArray[np.uint64]) -> npt.NDArray[np.uint64]:
+    def _bitcount_64(arr: npt.NDArray[np.uint64]) -> npt.NDArray[np.uint64]:
         """Count bits per element in a 64 bit array.
 
         Stolen from: https://github.com/softwaredoug/np-sims/blob/main/np_sims/hamming.py
