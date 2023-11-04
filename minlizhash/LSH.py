@@ -5,8 +5,8 @@ from typing import Callable, List, Set, DefaultDict, Protocol
 import numpy as np
 import pickle
 from collections import defaultdict
-from .tokens import Document
 
+from .types import Document
 LSH_Dictionary = DefaultDict[int, list[int]]
 
 

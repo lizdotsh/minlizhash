@@ -13,7 +13,7 @@ from .types import TokenArray, TextPreprocessor, TextTokenizer
 
 punctuation_pattern = re.compile(r'[^\w\s]')
 whitespace_pattern = re.compile(r'\s+')
-enc = tiktoken.get_encoding("gpt-2")
+enc = tiktoken.get_encoding("cl100k_base")
 def BPE(s: str) -> TokenArray:
     return np.array(enc.encode_ordinary(s), dtype=np.int32)
 
@@ -34,7 +34,7 @@ def preprocessor(s: str) -> str:
 
     return "".join([c for c in s if not unicodedata.combining(c)])
 
-def create_ngrams(raw: str,  preprocessor = preprocessor, tokenizer: TextTokenizer = BPE) -> TokenArray:
+def create_ngrams(raw: str,  preprocessor: TextPreprocessor = preprocessor, tokenizer: TextTokenizer = BPE) -> TokenArray:
     """
     WIP - BASIC
     Creates ngrams from a string

@@ -1,5 +1,5 @@
 # Anything to do with creation of the hasher object
-from typing import Callable, Protocol
+from typing import Callable
 
 import numpy as np
 import numpy.typing as npt
@@ -16,7 +16,7 @@ class Hasher:
         document_signer: DocumentSigner object, which is used to generate the signature for a document. 
             Use DocumentSignerMinAfter or DocumentSignerMinBefore.
     
-    Returns:
+    Returns
         Hasher: Hasher object
     """
     def __init__(self, seeds: PermutationSeeds, document_signer: DocumentSigner):
@@ -36,7 +36,7 @@ class Hasher:
 
 
 class DocumentSignerMinAfter(DocumentSigner):
-    """Signs the document token by token, vectorizing across the seeds for each iteration"""
+    """BROKEN | Signs the document token by token, vectorizing across the seeds for each iteration"""
     def __init__(self, hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest):
         self.hash_function = hash_function
         self._hash_function_vec = np.vectorize(hash_function, excluded=['token'], otypes=[np.uint64])
@@ -50,7 +50,7 @@ class DocumentSignerMinAfter(DocumentSigner):
     
     
 class DocumentSignerMinBefore(DocumentSigner):
-    """Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration"""
+    """BROKEN | Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration"""
     def __init__(self, hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest):
         self.hash_function = hash_function
        # self._hash_function_vec = np.vectorize(hash_function, excluded=['seed'], otypes=[np.uint64])
