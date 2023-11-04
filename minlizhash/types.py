@@ -1,4 +1,4 @@
-from typing import Callable, List, Protocol, TypedDict
+from typing import Callable, List, Protocol, Tuple, TypedDict
 
 import numpy as np
 import numpy.typing as npt
@@ -25,6 +25,28 @@ class Document(TypedDict):
     id: int
     tokens: TokenArray
     signature: DocumentSignature | None
+
+
+class LSH(Protocol):
+    def add(self, document: Document):
+        """Add item to the LSH index."""
+        ...
+
+    def add_batch_tuple(self, TupleList: List[Tuple[int, DocumentSignature]]):
+        """Add batch of items to the LSH index."""
+        ...
+
+    def add_batch_documentlist(self, DocumentList: List[Document]):
+        """Add batch of items to the LSH index."""
+        ...
+
+    def get_all_candidates(self) -> set[Tuple[int, int]]:
+        """Get all candidate pairs from the LSH index."""
+        ...
+
+    def save(self, filename: str):
+        """Save the LSH index to a file."""
+        ...
 
 
 class IndexStorage(Protocol):
