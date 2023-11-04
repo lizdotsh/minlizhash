@@ -2,6 +2,7 @@
 from typing import Callable
 
 import numpy as np
+from tqdm import tqdm
 from xxhash import xxh32_intdigest
 
 from .types import (
@@ -96,10 +97,10 @@ class Hasher:
 
     def sign_documents_batch(self, documents: list[Document], inplace=False):
         if inplace:
-            for doc in tdqm(documents):
+            for doc in tqdm(documents):
                 self.sign_document_inplace(doc)
         else:
-            return [self.sign_document(doc) for doc in tdqm(documents)]
+            return [self.sign_document(doc) for doc in tqdm(documents)]
 
     def sign_document_inplace(self, document: Document) -> None:
         document["signature"] = self.gen_signature(document["tokens"])
@@ -121,4 +122,5 @@ def gen_random_seeds(num_permutations: int) -> PermutationSeeds:
 
 
 def load_seeds(filename: str) -> PermutationSeeds:
+    return np.load(filename)
     return np.load(filename)
