@@ -36,7 +36,7 @@ class Hasher:
 
 
 class DocumentSignerMinAfter(DocumentSigner):
-    """BROKEN | Signs the document token by token, vectorizing across the seeds for each iteration"""
+    """Signs the document token by token, vectorizing across the seeds for each iteration"""
     def __init__(self, hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest):
         self.hash_function = hash_function
         self._hash_function_vec = np.vectorize(hash_function, excluded=['token'], otypes=[np.uint64])
@@ -44,13 +44,13 @@ class DocumentSignerMinAfter(DocumentSigner):
     def __call__(self, tokens: TokenArray, seeds: PermutationSeeds) -> DocumentSignature:
         res = np.zeros((tokens.shape[0], len(seeds)), dtype=np.uint64)
         for i in range(tokens.shape[0]):
-            res[i] = self._hash_function_vec(tokens[i])
+            res[i] = self._hash_function_vec(tokens[i], seeds)
         # get min for each column
         return np.min(res, axis=0)
     
     
 class DocumentSignerMinBefore(DocumentSigner):
-    """BROKEN | Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration"""
+    """Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration"""
     def __init__(self, hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest):
         self.hash_function = hash_function
        # self._hash_function_vec = np.vectorize(hash_function, excluded=['seed'], otypes=[np.uint64])
