@@ -41,4 +41,4 @@ def create_ngrams(
     WIP - BASIC
     Creates ngrams from a string
     """
-    return np.unique(tokenizer(preprocessor(raw)), dtype=np.int32)
+    return np.unique(tokenizer(preprocessor(raw)))

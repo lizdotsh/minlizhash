@@ -10,7 +10,7 @@ from .utils import document_np_to_list
 
 
 def create_document(tokens: TokenArray, id: int) -> Document:
-    return {"id": id, "tokens": np.unique(tokens), "signature": None}
+    return {"id": id, "tokens": np.unique(tokens)}
 
 
 def create_document_from_raw(

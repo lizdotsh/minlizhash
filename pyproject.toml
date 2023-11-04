@@ -13,6 +13,7 @@ xxhash = "^3.4.1"
 tdqm = "^0.0.1"
 tiktoken = "^0.5.1"
 jsonlines = "^4.0.0"
+types-tqdm = "^4.66.0.3"
 
 
 [tool.poetry.group.dev.dependencies]

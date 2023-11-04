@@ -1132,6 +1132,17 @@ docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=3.0.3)", "mypy (>=1.6.0)", "pre-commit", "pytest (>=7.0,<7.5)", "pytest-mock", "pytest-mypy-testing"]
 
 [[package]]
+name = "types-tqdm"
+version = "4.66.0.3"
+description = "Typing stubs for tqdm"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "types-tqdm-4.66.0.3.tar.gz", hash = "sha256:596a3396e7c15d3597c8af68bb3cf3ca0853dad68cea22e21b98dd8203741aff"},
+    {file = "types_tqdm-4.66.0.3-py3-none-any.whl", hash = "sha256:e47cff2e49411e9f8b7190576253de952bfe59c92261f78e8525f3199c8a01e0"},
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.8.0"
 description = "Backported and Experimental Type Hints for Python 3.8+"
@@ -1290,4 +1301,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<3.13"
-content-hash = "84abecba5742685cef49f95369bc1f19d53ea39670d9186fbc352b54d14e09a8"
+content-hash = "99b0ca6b93cec657e9ed032a2a22ae0d36ade79c20cb44a79b930498a232955d"

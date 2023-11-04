@@ -1,10 +1,12 @@
 # Anything to do with creation of the hasher object
+
 from typing import Callable
 
 import numpy as np
 from tqdm import tqdm
 from xxhash import xxh32_intdigest
 
+from .mp import sign_documents_batch_mp
 from .types import (
     Document,
     DocumentSignature,
@@ -19,9 +21,7 @@ from .types import (
 class DocumentSignerMinAfter(DocumentSigner):
     """Signs the document token by token, vectorizing across the seeds for each iteration"""
 
-    def __init__(
-        self, hash_function: Callable[[bytes, int], np.uint64] = xxh32_intdigest
-    ):
+    def __init__(self, hash_function: Callable[[bytes, int], int] = xxh32_intdigest):
         self.hash_function = hash_function
         self._hash_function_vec = np.vectorize(
             hash_function, excluded=["token"], otypes=[np.uint64]
@@ -40,9 +40,7 @@ class DocumentSignerMinAfter(DocumentSigner):
 class DocumentSignerMinBefore(DocumentSigner):
     """Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration"""
 
-    def __init__(
-        self, hash_function: Callable[[bytes, int], np.uint64] = xxh32_intdigest
-    ):
+    def __init__(self, hash_function: Callable[[bytes, int], int] = xxh32_intdigest):
         self.hash_function = hash_function
 
     # self._hash_function_vec = np.vectorize(hash_function, excluded=['seed'], otypes=[np.uint64])
@@ -99,10 +97,12 @@ class Hasher:
         new_doc["signature"] = self.gen_signature(document["tokens"])
         return new_doc
 
-    def sign_documents_batch(self, documents: list[Document], inplace=False):
+    def sign_documents_batch(self, documents: list[Document], inplace=False, mp=False):
         if inplace:
             for doc in tqdm(documents):
                 self.sign_document_inplace(doc)
+        if mp:
+            return sign_documents_batch_mp(documents, self)
         else:
             return [self.sign_document(doc) for doc in tqdm(documents)]
 
