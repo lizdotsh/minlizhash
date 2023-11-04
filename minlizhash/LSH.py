@@ -13,7 +13,7 @@ from xxhash import xxh32_intdigest
 from .hasher import Hasher
 from .types import Document, DocumentSignature, IndexStorage
 
-LSH_Dictionary = List[DefaultDict[Any, list[int]]]
+LSH_Dictionary = List[DefaultDict[int, list[int]]]
 
 # Save masks to avoid recomputing
 # Naive bitcount implementation without popcount
@@ -50,7 +50,7 @@ class LSHIndex_Banding(LSH):
         seed: int = 0,
         hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest,
     ):
-        if len(num_permutations) % num_bands != 0:
+        if num_permutations % num_bands != 0:
             raise ValueError(
                 f"Number of bands must be divisible by the number of permutations: {len(hasher)}"
             )
@@ -61,6 +61,7 @@ class LSHIndex_Banding(LSH):
             defaultdict(list) for _ in range(self._num_bands)
         ]
         self._rows_per_band = self._num_permutations // num_bands
+        self._hash_function = hash_function
 
     def _get_bands(self, signature: DocumentSignature) -> npt.NDArray[np.uint64]:
         """Split the signature into bands and hash them"""
@@ -144,7 +145,7 @@ class LSHIndex_Banding(LSH):
         return LSHIndex_Banding(
             num_bands,
             len(hasher),
-            hasher.seed,
+            hasher.rng_seed,
             hash_function=hasher.document_signer.hash_function,
         )
 
