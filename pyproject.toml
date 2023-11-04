@@ -11,7 +11,12 @@ python = ">=3.12,<3.13"
 numpy = "^1.26.1"
 xxhash = "^3.4.1"
 tdqm = "^0.0.1"
+tiktoken = "^0.5.1"
+jsonlines = "^4.0.0"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.26.0"
 
 [build-system]
 requires = ["poetry-core"]

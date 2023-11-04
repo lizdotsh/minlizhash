@@ -1,7 +1,10 @@
 import pickle
+from typing import Dict
 
 import numpy as np
 import numpy.typing as npt
+
+from .types import Document
 
 
 def progress_bar(i, mx, bar_length=20) -> str:
@@ -35,3 +38,13 @@ def simple_shingles_generator(text: str, k: int = 3) -> npt.NDArray[np.str_]:
     return np.fromiter(
         (text[i : i + k] for i in range(len(text) - k + 1)), dtype="<U" + str(k)
     )
+
+
+def document_np_to_list(doc: Document) -> Dict:
+    return {
+        "id": doc["id"],
+        "tokens": doc["tokens"].tolist(),
+        "signature": doc["signature"].tolist()
+        if doc["signature"] is not None
+        else None,
+    }
