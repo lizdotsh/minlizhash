@@ -1,18 +1,19 @@
 # Everything LSH related lives here
 
-import json
+import pickle
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import partial
-from typing import DefaultDict, List, Protocol, Tuple
+from typing import Callable, DefaultDict, List, Protocol, Tuple
 
 import numpy as np
 import numpy.typing as npt
+from xxhash import xxh32_intdigest
 
 from .hasher import Hasher
 from .types import Document, DocumentSignature, IndexStorage
 
-LSH_Dictionary = DefaultDict[int, list[int]]
+LSH_Dictionary = List[DefaultDict[Any, list[int]]]
 
 # Save masks to avoid recomputing
 # Naive bitcount implementation without popcount
@@ -42,20 +43,24 @@ class LSH(Protocol):
 
 
 class LSHIndex_Banding(LSH):
-    def __init__(self, num_bands: int, hasher: Hasher):
-        if len(hasher) % num_bands != 0:
+    def __init__(
+        self,
+        num_bands: int,
+        num_permutations: int,
+        seed: int = 0,
+        hash_function: Callable[[bytes], np.uint64] = xxh32_intdigest,
+    ):
+        if len(num_permutations) % num_bands != 0:
             raise ValueError(
                 f"Number of bands must be divisible by the number of permutations: {len(hasher)}"
             )
-        self._seed = hasher.rng_seed
+        self._seed = seed
         self._num_bands = num_bands
-        self._rng = np.random.default_rng(self._seed)
-        self._num_permutations = len(hasher)
-        self.buckets = [defaultdict(list) for _ in range(self.num_bands)]
+        self._num_permutations = num_permutations
+        self.buckets: LSH_Dictionary = [
+            defaultdict(list) for _ in range(self._num_bands)
+        ]
         self._rows_per_band = self._num_permutations // num_bands
-        self._hash_function = partial(
-            hasher.document_signer.hash_function, seed=self._seed
-        )
 
     def _get_bands(self, signature: DocumentSignature) -> npt.NDArray[np.uint64]:
         """Split the signature into bands and hash them"""
@@ -71,7 +76,7 @@ class LSHIndex_Banding(LSH):
         """Split the signature into bands and hash them"""
         return np.array(
             [
-                self._hash_function(band.tobytes())
+                self._hash_function(band.tobytes(), self._seed)
                 for band in np.hsplit(signature, self._num_bands)
             ],
             dtype=np.uint64,
@@ -84,11 +89,13 @@ class LSHIndex_Banding(LSH):
             )
 
         for i, band in enumerate(self._get_bands(signature)):
-            self.buckets[i][band].append(id)
+            if id not in self.buckets[i][band]:
+                self.buckets[i][band].append(id)
+            # self.buckets[i][band].append()
 
     def add(self, document: Document):
         """Add item to the LSH index."""
-        self._add_id_sig(document.id, document.signature)
+        self._add_id_sig(document["id"], document["signature"])
 
     def add_batch_tuple(self, TupleList: List[Tuple[int, DocumentSignature]]):
         """Add batch of items to the LSH index."""
@@ -98,18 +105,48 @@ class LSHIndex_Banding(LSH):
     def add_batch_documentlist(self, DocumentList: List[Document]):
         """Add batch of items to the LSH index."""
         for doc in DocumentList:
-            self._add_id_sig(doc.id, doc.signature)
+            self._add_id_sig(doc["id"], doc["signature"])
 
-    def save(self, filename: str):
-        """Save as json file."""
-        info = {
-            "seed": self._seed,
+    def save_pickle(self, filename: str):
+        """Save the LSH index to a file."""
+        data = {
             "num_bands": self._num_bands,
             "num_permutations": self._num_permutations,
+            "seed": self._seed,
             "buckets": self.buckets,
         }
-        with open(filename, "w") as f:
-            json.dump(info, f)
+        with open(filename, "wb") as f:
+            pickle.dump(data, f)
+
+    def merge_dictionary(self, lsh_dict: LSH_Dictionary):
+        """Merge a dictionary into the current LSH index.
+        If seed, bands, and permutations are the same, this should work."""
+        for i, band in enumerate(lsh_dict):
+            for hash, ids in band.items():
+                self.buckets[i][hash].extend(ids)
+                # make unique
+                self.buckets[i][hash] = list(set(self.buckets[i][hash]))
+
+    @staticmethod
+    def load_pickle(filename: str):
+        """Load the LSH index from a file."""
+        with open(filename, "rb") as f:
+            data = pickle.load(f)
+        lsh = LSHIndex_Banding(
+            data["num_bands"], data["num_permutations"], data["seed"]
+        )
+        lsh.buckets = data["buckets"]
+        return lsh
+
+    @staticmethod
+    def from_hasher(hasher: Hasher, num_bands: int):
+        """Create a LSHIndex_Banding from a Hasher object."""
+        return LSHIndex_Banding(
+            num_bands,
+            len(hasher),
+            hasher.seed,
+            hash_function=hasher.document_signer.hash_function,
+        )
 
 
 class LSHIndex_Projection(LSH):
