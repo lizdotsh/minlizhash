@@ -3,7 +3,7 @@
 import pickle
 from collections import defaultdict
 from itertools import combinations
-from typing import Any, Callable, DefaultDict, Dict, List, Tuple
+from typing import Any, Callable, DefaultDict, Dict, List, Literal, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -39,6 +39,25 @@ class LSHIndex(LSH):
         seed: int = 0,
         hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
     ):
+        """
+        Creates an LSH index using banding (https://en.wikipedia.org/wiki/Locality-sensitive_hashing).
+        Very simple algorithm. Just takes the much longer MinHash signature and splits it into bands, then hashes each band.
+
+        Documents that share at least one hash are considered candidates (more likely to be identical) and then manually checked or have their hashes checked later.
+
+        If you already have a hasher object, you can use the static method from_hasher to create an LSHIndex object directly.
+
+        Args:
+            num_bands: Number of bands to use. Must be divisible by the number of permutations.
+            num_permutations: Number of permutations to use. Must be divisible by the number of bands.
+            seed: Seed to use for the hash function.
+            hash_function: Hash function to use. Must be a function that takes a bytes object and a seed and returns an integer.
+
+        Returns:
+            LSHIndex: LSHIndex object
+
+
+        """
         if num_permutations % num_bands != 0:
             raise ValueError(
                 f"Number of bands must be divisible by the number of permutations: {num_permutations}"
@@ -117,7 +136,7 @@ class LSHIndex(LSH):
         with open(filename, "wb") as f:
             pickle.dump(data, f)
 
-    def merge_dictionary(self, lsh_dict: LSH_Dictionary):
+    def merge_buckets(self, lsh_dict: LSH_Dictionary):
         """Merge a dictionary into the current LSH index.
         If seed, bands, and permutations are the same, this should work."""
         for i, band in enumerate(lsh_dict):
@@ -149,6 +168,7 @@ class LSHIndex(LSH):
 class LSHIndex_Projection(LSH):
     """
     Only partly implimented. Do not use.
+    Impliments LSH with Random Projection (https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
     """
 
     def __init__(self, seed: int, num_bands: int, hasher: Hasher):
@@ -207,8 +227,8 @@ class LSHIndex_Projection(LSH):
 
 
 def check_candidatelist(
-    documentlist: List[Document] | Dict[Any, Document],
     candidatelist: List[Tuple[int, int]],
+    documentlist: List[Document] | Dict[Any, Document],
     exact=False,
 ) -> List[Tuple[int, int, float]]:
     """Check the candidates and return the actual Jaccard similarity.
@@ -219,10 +239,11 @@ def check_candidatelist(
         documentlist: List of documents
         candidatelist: List of candidate pairs
         exact: If True, compute the exact Jaccard similarity. If False, use the MinHash signature
+        filter_if_below (float): If the Jaccard similarity is below this value, filter it of the resulting list.
     Returns:
         List of tuples (a, b, jaccard_similarity)
     """
-    key = "signature" if exact else "tokens"
+
     return [
         (
             a,
@@ -231,3 +252,34 @@ def check_candidatelist(
         )
         for a, b in candidatelist
     ]
+
+
+def filter_checked_candidates(
+    checked_candidates: List[Tuple[int, int, float]],
+    filter_if_below: float = 0.0,
+    leave_one: bool = False,
+) -> set[int | str]:
+    """
+    Input a list of tuples (a, b, jaccard_similarity) and filter out the ones below the threshold.
+    returns a set of document IDs where a duplicate exists.
+
+    If delete_both is True, then if a duplicate is found, both documents are deleted from the set.
+    Otherwise, only the second document is deleted. (leaving 1 copy of the duplicate)
+
+    """
+    deleteset = set()
+    if leave_one:
+        deleteset = deleteset.union(
+            {
+                a
+                for a, b, jaccard_similarity in checked_candidates
+                if jaccard_similarity >= filter_if_below
+            }
+        )
+    return deleteset.union(
+        {
+            b
+            for a, b, jaccard_similarity in checked_candidates
+            if jaccard_similarity >= filter_if_below
+        }
+    )

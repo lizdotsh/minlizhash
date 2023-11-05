@@ -38,7 +38,10 @@ class DocumentSignerMinAfter(DocumentSigner):
 
 
 class DocumentSignerMinBefore(DocumentSigner):
-    """Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration"""
+    """Signs the document seed by seed, vectorizing across the tokens and picking the min for each iteration.
+
+    I found this to be faster than DocumentSignerMinAfter,
+    but leaving both in (easy drop in replacement if better method found)"""
 
     def __init__(self, hash_function: Callable[[bytes, int], int] = xxh32_intdigest):
         self.hash_function = hash_function
@@ -65,16 +68,6 @@ def gen_random_seeds_from_seed(num_permutations: int, seed: int) -> PermutationS
 
 
 class Hasher:
-    """Creates a Hasher object, which can be used to generate signatures for documents
-    Args:
-        seeds: seeds to use, ArrayLike. Use load_seeds to load from file or gen_random_seeds to generate random seeds
-        document_signer: DocumentSigner object, which is used to generate the signature for a document.
-            Use DocumentSignerMinAfter or DocumentSignerMinBefore.
-
-    Returns
-        Hasher: Hasher object
-    """
-
     def __init__(
         self,
         seed: int,
@@ -83,16 +76,37 @@ class Hasher:
             hash_function=xxh32_intdigest
         ),
     ):
+        """Creates a Hasher object, which can be used to generate signatures for documents
+        Args:
+            seed: Seed used to generate the seeds for the permutations.
+            num_permutations: Number of permutations to use.
+            document_signer: DocumentSigner object, which is used to generate the signature for a document.
+                Use DocumentSignerMinAfter or DocumentSignerMinBefore.
+
+        Returns
+            Hasher: Hasher object
+        """
         self.num_permutations = num_permutations
         self.rng_seed = seed
         self.document_signer = document_signer
         self.seeds = Hasher._seeds_from_seed(self.rng_seed, num_permutations)
 
     def gen_signature(self, tokens: TokenArray) -> DocumentSignature:
+        """
+        Directly generates a signature for a an array of Tokens (any np array of integers) using the document_signer
+        object passed to the Hasher object.
+
+        Args:
+            tokens: Array of tokens to generate a signature for
+
+        Returns:
+            DocumentSignature: Signature for the tokens (np array of uint64)
+
+        """
         return self.document_signer(tokens, self.seeds)
 
     def sign_document(self, document: Document) -> Document:
-        # DO NOT MODIFY INPLACE
+        """takes a Document object and returns a new document object with the same id and tokens, but with a signature"""
         new_doc = document.copy()
         new_doc["signature"] = self.gen_signature(document["tokens"])
         return new_doc
@@ -107,6 +121,7 @@ class Hasher:
             return [self.sign_document(doc) for doc in tqdm(documents)]
 
     def sign_document_inplace(self, document: Document) -> None:
+        """takes a Document object and adds a signature to it inplace"""
         document["signature"] = self.gen_signature(document["tokens"])
 
     @staticmethod
@@ -119,6 +134,7 @@ class Hasher:
 
 
 def gen_random_seeds(num_permutations: int) -> PermutationSeeds:
+    """Unused helper function"""
     return np.random.randint(0, 10000000, num_permutations)
 
 
