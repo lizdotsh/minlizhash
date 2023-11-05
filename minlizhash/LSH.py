@@ -3,7 +3,7 @@
 import pickle
 from collections import defaultdict
 from itertools import combinations
-from typing import Any, Callable, DefaultDict, Dict, List, Literal, Tuple
+from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -168,7 +168,7 @@ class LSHIndex(LSH):
 class LSHIndex_Projection(LSH):
     """
     Only partly implimented. Do not use.
-    Impliments LSH with Random Projection (https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
+    Impliments LSH with Random Projection (https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection).
     """
 
     def __init__(self, seed: int, num_bands: int, hasher: Hasher):
@@ -267,7 +267,7 @@ def filter_checked_candidates(
     Otherwise, only the second document is deleted. (leaving 1 copy of the duplicate)
 
     """
-    deleteset = set()
+    deleteset: Set[Any] = set()
     if leave_one:
         deleteset = deleteset.union(
             {

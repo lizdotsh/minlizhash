@@ -104,15 +104,10 @@ filtered_candidates: List[Tuple[int, int, float]] = mh.filter_candidates(
     min_jaccard=0.5
     )
 
-
-    
-
-
-
-
 ```
+## Notes
 
-Separated into three primary parts: 
+Even though I'm releasing this, its very much a WIP. For instance, I'm still not sure if I want to combine together the initial text processing and minhashing, and went back and fourth about having the Document typedict have other fields (original string, processed string, etc). Decided to keep it simple for now but expose the functions in minlizhash.tokens for use in other projects.
 
 # Types: 
 
@@ -179,3 +174,15 @@ mh.documentlist_to_jsonl(documentlist_no_dup, "path/to/file.jsonl")
 
 ```
 
+## Other / Advanced / Unfinished
+
+### DocumentSigner
+There are two versions of the DocumentSigner. One that hashes the document before signing and one that signs the document before hashing. 
+
+
+### minlizhash.tokens 
+This module contains a couple basic functions for cleaning up strings and tokenizing them for use in the minhash algorithm.
+
+### LSHIndex_Projection
+
+This is NOT FINISHED. It will NOT work. I just wanted to get the basic workings down. I also have realized that the speedup of doing this projection is not actually especially useful for document similarity. It is mathematically interesting though.
