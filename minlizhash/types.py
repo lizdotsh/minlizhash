@@ -1,4 +1,13 @@
-from typing import Callable, List, NotRequired, Protocol, Tuple, TypeAlias, TypedDict
+from typing import (
+    Callable,
+    DefaultDict,
+    List,
+    NotRequired,
+    Protocol,
+    Tuple,
+    TypeAlias,
+    TypedDict,
+)
 
 import numpy as np
 import numpy.typing as npt
@@ -28,6 +37,8 @@ class Document(TypedDict):
 
 
 class LSH(Protocol):
+    buckets: List[DefaultDict[int | str, List[int]]]
+
     def add(self, document: Document):
         """Add item to the LSH index."""
         ...
@@ -49,15 +60,15 @@ class LSH(Protocol):
         ...
 
 
-class IndexStorage(Protocol):
-    def add(self, band, key: int, value: List[int]):
-        """Add item to the LSH index."""
-        ...
+# class IndexStorage(Protocol):
+#     def add(self, band, key: int, value: List[int]):
+#         """Add item to the LSH index."""
+#         ...
 
-    def get(self, band, key: int) -> List[int]:
-        """Get item from the LSH index."""
-        ...
+#     def get(self, band, key: int) -> List[int]:
+#         """Get item from the LSH index."""
+#         ...
 
-    def save(self, filename: str):
-        """Save the LSH index to a file."""
-        ...
+#     def save(self, filename: str):
+#         """Save the LSH index to a file."""
+#         ...

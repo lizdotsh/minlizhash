@@ -12,7 +12,7 @@ def cosine_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> f
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def jaccard_similarity(a: npt.NDArray[np.uint64], b: npt.NDArray[np.uint64]) -> float:
+def jaccard_similarity(a: npt.NDArray[np.integer], b: npt.NDArray[np.integer]) -> float:
     """Compute the Jaccard similarity between two vectors"""
     return np.intersect1d(a, b).size / np.union1d(a, b).size
 
