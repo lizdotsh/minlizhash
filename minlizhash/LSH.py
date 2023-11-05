@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 from xxhash import xxh32_intdigest
 
-from .hasher import Hasher
+from .hash import Hasher
 from .types import LSH, Document, DocumentSignature
 from .utils import jaccard_similarity
 

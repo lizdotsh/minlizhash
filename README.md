@@ -16,27 +16,29 @@ Simple usage example.
 filter_documentlist(
     documentlist: List[Document],
     seed: int,
-    num_permutations: int,
-    hash_function: (bytes, int) -> int = xxh32_intdigest,
+    num_permutations: int = 128,
+    num_bands: int = 32,
     mp: bool = False,
     check_candidates_exactly: bool = False,
     filter_below: float = 0,
     leave_one_for_each_duplicate: bool = False,
     existing_index: LSH | str | None = None,
     index_save_dir: str | None = None,
-    save_matches_dir: str | None = None
+    save_matches_dir: str | None = None,
+    hash_function: (bytes, int) -> int = xxh32_intdigest
 ) -> List[Document]
 Takes a list of documents and returns a new list of documents with signatures Args:
     documentlist: List of documents to be signed
     seed: Seed used to generate the seeds for the permutations.
     num_permutations: Number of permutations to use.
-    hash_function: Hash function to use. Default is xxh32_intdigest
+    num_bands: Number of bands to use for LSH. Default is 20
     mp: Whether to use multiprocessing. Default is False
     check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
-    filter_below: Threshold Jaccard for filtering candidates. Default is 0.0
+    filter_below: Threshold Jaccard for filtering candidates. Default is 0.0. Higher will increase result set (more false positives)
     leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
     existing_index: Existing index to use. Default is None. If string, loads index from file. If LSH, uses that index.
     index_save_dir: Directory to save index to. Default is None
+    hash_function: Hash function to use. Default is xxh32_intdigest
 
 Returns:
     List of documents with signatures

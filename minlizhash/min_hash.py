@@ -5,7 +5,7 @@ import jsonlines
 import numpy as np
 from xxhash import xxh32_intdigest
 
-from .hasher import DocumentSignerMinBefore, Hasher
+from .hash import DocumentSignerMinBefore, Hasher
 from .LSH import LSHIndex, check_candidatelist, filter_checked_candidates
 from .types import LSH, Document, TokenArray
 from .utils import document_np_to_list
