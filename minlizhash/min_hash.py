@@ -51,7 +51,6 @@ def filter_documentlist(
     seed: int,
     num_permutations: int = 150,
     num_bands: int = 20,
-    hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
     mp=False,
     check_candidates_exactly: bool = False,
     filter_below: float = 0.0,
@@ -59,6 +58,7 @@ def filter_documentlist(
     existing_index: Union[None, LSH, str] = None,
     index_save_dir: str | None = None,
     save_matches_dir: str | None = None,
+    hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
 ) -> List[Document]:
     """Takes a list of documents and returns a new list of documents with signatures
     Args:
@@ -66,13 +66,13 @@ def filter_documentlist(
         seed: Seed used to generate the seeds for the permutations.
         num_permutations: Number of permutations to use.
         num_bands: Number of bands to use for LSH. Default is 20
-        hash_function: Hash function to use. Default is xxh32_intdigest
         mp: Whether to use multiprocessing. Default is False
         check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
         filter_below: Threshold Jaccard for filtering candidates. Default is 0.0
         leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
         existing_index: Existing index to use. Default is None. If string, loads index from file. If LSH, uses that index.
         index_save_dir: Directory to save index to. Default is None
+        hash_function: Hash function to use. Default is xxh32_intdigest
 
     Returns:
         List of documents with signatures
@@ -82,11 +82,9 @@ def filter_documentlist(
         num_permutations=num_permutations,
         document_signer=DocumentSignerMinBefore(hash_function=hash_function),
     )
-    processed_documents = hsr.sign_documents_batch(documentlist, mp=mp)
+    processed_documents = hsr.sign_documents_batch(documentlist, inplace=False, mp=mp)
 
-    index = LSHIndex.from_hasher(
-        hsr,
-    )
+    index = LSHIndex.from_hasher(hsr, num_bands)
     if existing_index is not None:
         if isinstance(existing_index, str):
             index.merge_buckets(LSHIndex.load(existing_index).buckets)
@@ -123,7 +121,6 @@ def filter_jsonl(
     seed: int,
     num_permutations: int = 150,
     num_bands: int = 20,
-    hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
     mp=False,
     check_candidates_exactly: bool = False,
     filter_below: float = 0.0,
@@ -131,6 +128,7 @@ def filter_jsonl(
     existing_index: Union[None, LSH, str] = None,
     index_save_dir: str | None = None,
     save_matches_dir: str | None = None,
+    hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
 ) -> None:
     """Takes a jsonl file and returns a new jsonl file with signatures
     May update later to batch load or similar. If you need more customization, all the APIs are internally available.
@@ -140,13 +138,13 @@ def filter_jsonl(
         seed: Seed used to generate the seeds for the permutations.
         num_permutations: Number of permutations to use.
         num_bands: Number of bands to use for LSH. Default is 20
-        hash_function: Hash function to use. Default is xxh32_intdigest
         mp: Whether to use multiprocessing. Default is False
         check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
         filter_below: Threshold Jaccard for filtering candidates. Default is 0.0
         leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
         existing_index: Existing index to use. Default is None. If string, loads index from file. If LSH, uses that index.
         index_save_dir: Directory to save index to. Default is None
+        hash_function: Hash function to use. Default is xxh32_intdigest
     """
     documentlist: List[Document] = jsonl_to_documentlist(input_file)
     filtered_documentlist = filter_documentlist(
@@ -154,7 +152,6 @@ def filter_jsonl(
         seed,
         num_permutations,
         num_bands,
-        hash_function,
         mp,
         check_candidates_exactly,
         filter_below,
@@ -162,5 +159,6 @@ def filter_jsonl(
         existing_index,
         index_save_dir,
         save_matches_dir,
+        hash_function,
     )
     documentlist_to_jsonl(output_file, filtered_documentlist)
