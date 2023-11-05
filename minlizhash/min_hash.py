@@ -1,12 +1,12 @@
 # This is not efficient at all. am going to change so it calculates all the hashes at once in one vectorized function call. WIP
-from typing import Callable, Dict, List, Union
+from typing import Callable, List, Union
 
 import jsonlines
 import numpy as np
-from LSH import LSHIndex, check_candidatelist, filter_checked_candidates
 from xxhash import xxh32_intdigest
 
 from .hasher import DocumentSignerMinBefore, Hasher
+from .LSH import LSHIndex, check_candidatelist, filter_checked_candidates
 from .types import LSH, Document, TokenArray
 from .utils import document_np_to_list
 
@@ -49,7 +49,8 @@ def documentlist_to_jsonl(path: str, documentlist: List[Document]) -> None:
 def filter_documentlist(
     documentlist: List[Document],
     seed: int,
-    num_permutations: int,
+    num_permutations: int = 150,
+    num_bands: int = 20,
     hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
     mp=False,
     check_candidates_exactly: bool = False,
@@ -64,6 +65,7 @@ def filter_documentlist(
         documentlist: List of documents to be signed
         seed: Seed used to generate the seeds for the permutations.
         num_permutations: Number of permutations to use.
+        num_bands: Number of bands to use for LSH. Default is 20
         hash_function: Hash function to use. Default is xxh32_intdigest
         mp: Whether to use multiprocessing. Default is False
         check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
@@ -82,7 +84,9 @@ def filter_documentlist(
     )
     processed_documents = hsr.sign_documents_batch(documentlist, mp=mp)
 
-    index = LSHIndex.from_hasher(hsr)
+    index = LSHIndex.from_hasher(
+        hsr,
+    )
     if existing_index is not None:
         if isinstance(existing_index, str):
             index.merge_buckets(LSHIndex.load(existing_index).buckets)
@@ -96,7 +100,7 @@ def filter_documentlist(
     checked_candidatelist = check_candidatelist(
         index.get_all_candidates(),
         processed_documents,
-        check_candidates_exactly=check_candidates_exactly,
+        exact=check_candidates_exactly,
     )
     filtered_checked_candidates = filter_checked_candidates(
         checked_candidatelist, filter_below, leave_one=leave_one_for_each_duplicate
@@ -117,7 +121,8 @@ def filter_jsonl(
     input_file: str,
     output_file: str,
     seed: int,
-    num_permutations: int,
+    num_permutations: int = 150,
+    num_bands: int = 20,
     hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
     mp=False,
     check_candidates_exactly: bool = False,
@@ -134,6 +139,7 @@ def filter_jsonl(
         output_file: Path to output jsonl file
         seed: Seed used to generate the seeds for the permutations.
         num_permutations: Number of permutations to use.
+        num_bands: Number of bands to use for LSH. Default is 20
         hash_function: Hash function to use. Default is xxh32_intdigest
         mp: Whether to use multiprocessing. Default is False
         check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
@@ -147,6 +153,7 @@ def filter_jsonl(
         documentlist,
         seed,
         num_permutations,
+        num_bands,
         hash_function,
         mp,
         check_candidates_exactly,

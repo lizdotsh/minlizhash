@@ -1,12 +1,12 @@
 # Anything to do with creation of the hasher object
 
-from typing import Callable
+from multiprocessing import Pool
+from typing import Callable, List
 
 import numpy as np
 from tqdm import tqdm
 from xxhash import xxh32_intdigest
 
-from .mp import sign_documents_batch_mp
 from .types import (
     Document,
     DocumentSignature,
@@ -105,6 +105,13 @@ class Hasher:
         """
         return self.document_signer(tokens, self.seeds)
 
+    def _sign_documents_batch_mp(self, documents: List[Document]) -> List[Document]:
+        with Pool() as pool:
+            results = pool.starmap(
+                Hasher.sign_document, [(self, document) for document in documents]
+            )
+        return results
+
     def sign_document(self, document: Document) -> Document:
         """takes a Document object and returns a new document object with the same id and tokens, but with a signature"""
         new_doc = document.copy()
@@ -116,7 +123,7 @@ class Hasher:
             for doc in tqdm(documents):
                 self.sign_document_inplace(doc)
         if mp:
-            return sign_documents_batch_mp(documents, self)
+            return self._sign_documents_batch_mp(documents)
         else:
             return [self.sign_document(doc) for doc in tqdm(documents)]
 
@@ -124,13 +131,13 @@ class Hasher:
         """takes a Document object and adds a signature to it inplace"""
         document["signature"] = self.gen_signature(document["tokens"])
 
+    def __len__(self) -> int:
+        return self.num_permutations
+
     @staticmethod
     def _seeds_from_seed(seed: int, num_permutations: int) -> PermutationSeeds:
         rng = np.random.default_rng(seed)
         return rng.integers(0, 10000000, size=(num_permutations, 1), dtype=np.int32)
-
-    def __len__(self) -> int:
-        return self.num_permutations
 
 
 def gen_random_seeds(num_permutations: int) -> PermutationSeeds:

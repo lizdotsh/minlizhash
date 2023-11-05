@@ -1,5 +1,3 @@
-# Everything LSH related lives here
-
 import pickle
 from collections import defaultdict
 from itertools import combinations
@@ -169,6 +167,8 @@ class LSHIndex_Projection(LSH):
     """
     Only partly implimented. Do not use.
     Impliments LSH with Random Projection (https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection).
+
+
     """
 
     def __init__(self, seed: int, num_bands: int, hasher: Hasher):
