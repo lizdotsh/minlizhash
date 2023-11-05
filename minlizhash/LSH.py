@@ -1,3 +1,5 @@
+# Everything LSH related lives here
+
 import pickle
 from collections import defaultdict
 from itertools import combinations
@@ -243,7 +245,7 @@ def check_candidatelist(
     Returns:
         List of tuples (a, b, jaccard_similarity)
     """
-
+    key = "signature" if exact else "tokens"
     return [
         (
             a,

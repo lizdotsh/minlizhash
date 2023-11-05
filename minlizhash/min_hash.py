@@ -49,8 +49,8 @@ def documentlist_to_jsonl(path: str, documentlist: List[Document]) -> None:
 def filter_documentlist(
     documentlist: List[Document],
     seed: int,
-    num_permutations: int = 150,
-    num_bands: int = 20,
+    num_permutations: int = 128,
+    num_bands: int = 32,
     mp=False,
     check_candidates_exactly: bool = False,
     filter_below: float = 0.0,
@@ -68,7 +68,7 @@ def filter_documentlist(
         num_bands: Number of bands to use for LSH. Default is 20
         mp: Whether to use multiprocessing. Default is False
         check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
-        filter_below: Threshold Jaccard for filtering candidates. Default is 0.0
+        filter_below: Threshold Jaccard for filtering candidates. Default is 0.0. Higher will increase result set (more false positives)
         leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
         existing_index: Existing index to use. Default is None. If string, loads index from file. If LSH, uses that index.
         index_save_dir: Directory to save index to. Default is None
