@@ -1,7 +1,7 @@
 # Liz's MinHash Implimentation
 
 This is a simple implimentation of the MinHash LSH deduplication algorithm. See more: https://en.wikipedia.org/wiki/MinHash.
-Not meant to be performant or actually used, created as learning exercise. I don't think it performs too terribly though, mostly just limited by no vectorized hashing functions. Also would highly appreciate any feedback on the code / in general.  
+Not meant to be performant or actually used, created as learning exercise. It is approximately 8x faster than the datasketch implimentation in JIT mode, however. Also would highly appreciate any feedback on the code / in general.  
 
 
 ## UPDATE - 2022-11-07:
