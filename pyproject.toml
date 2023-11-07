@@ -7,13 +7,14 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.13"
+python = ">=3.11,<3.12"
 numpy = "^1.26.1"
 xxhash = "^3.4.1"
 tdqm = "^0.0.1"
 tiktoken = "^0.5.1"
 jsonlines = "^4.0.0"
 types-tqdm = "^4.66.0.3"
+numba = "^0.58.1"
 
 
 [tool.poetry.group.dev.dependencies]
