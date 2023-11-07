@@ -4,7 +4,6 @@ from typing import Callable
 import numpy as np
 import numpy.typing as npt
 from numba import njit
-from numba.typed import List
 
 from .types import DocumentSigner, PermutationSeeds, TokenArray
 

@@ -118,9 +118,10 @@ class Hasher:
         new_doc["signature"] = self.gen_signature(document["tokens"])
         return new_doc
 
-    def sign_documents_batch(
+    def sign_documents(
         self, documents: list[Document], inplace=False, mp=False, progress_bar=True
     ):
+        """takes a list of Document objects and returns a new list of Document objects with the same ids and tokens, but with signatures"""
         if progress_bar:
             documents = tqdm(documents)
         if inplace:

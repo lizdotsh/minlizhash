@@ -6,8 +6,9 @@ import numpy as np
 from xxhash import xxh32_intdigest
 
 from .hash import DocumentSignerMinBefore, Hasher
+from .jit import DocumentSignerJIT
 from .LSH import LSHIndex, check_candidatelist, filter_checked_candidates
-from .types import LSH, Document, TokenArray
+from .types import LSH, Document, DocumentSigner, TokenArray
 from .utils import document_np_to_list
 
 
@@ -51,7 +52,9 @@ def filter_documentlist(
     seed: int,
     num_permutations: int = 128,
     num_bands: int = 32,
-    mp=False,
+    mp: bool = False,
+    progress_bar: bool = True,
+    jit: bool = True,
     check_candidates_exactly: bool = False,
     filter_below: float = 0.0,
     leave_one_for_each_duplicate: bool = False,
@@ -60,13 +63,15 @@ def filter_documentlist(
     save_matches_dir: str | None = None,
     hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
 ) -> List[Document]:
-    """Takes a list of documents and returns a new list of documents with signatures
+    """Takes a list of documents and returns a new list of documents with signatures. If JIT is chosen, hash funciton choice will be ignored.
     Args:
         documentlist: List of documents to be signed
         seed: Seed used to generate the seeds for the permutations.
         num_permutations: Number of permutations to use.
         num_bands: Number of bands to use for LSH. Default is 20
         mp: Whether to use multiprocessing. Default is False
+        progress_bar: Whether to show progress bar. Default is True
+        jit: Whether to use custom JIT compiled hashing function (uses numba). Default is True (recommended).
         check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
         filter_below: Threshold Jaccard for filtering candidates. Default is 0.0. Higher will increase result set (more false positives)
         leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
@@ -77,12 +82,18 @@ def filter_documentlist(
     Returns:
         List of documents with signatures
     """
+    if jit:
+        signer: DocumentSigner = DocumentSignerJIT()
+    else:
+        signer = DocumentSignerMinBefore(hash_function=hash_function)
     hsr = Hasher(
         seed=seed,
         num_permutations=num_permutations,
-        document_signer=DocumentSignerMinBefore(hash_function=hash_function),
+        document_signer=signer,
     )
-    processed_documents = hsr.sign_documents_batch(documentlist, inplace=False, mp=mp)
+    processed_documents = hsr.sign_documents(
+        documentlist, inplace=False, mp=mp, progress_bar=progress_bar
+    )
 
     index = LSHIndex.from_hasher(hsr, num_bands)
     if existing_index is not None:
@@ -121,7 +132,9 @@ def filter_jsonl(
     seed: int,
     num_permutations: int = 150,
     num_bands: int = 20,
-    mp=False,
+    mp: bool = False,
+    progress_bar: bool = True,
+    jit: bool = True,
     check_candidates_exactly: bool = False,
     filter_below: float = 0.0,
     leave_one_for_each_duplicate: bool = False,
@@ -139,6 +152,8 @@ def filter_jsonl(
         num_permutations: Number of permutations to use.
         num_bands: Number of bands to use for LSH. Default is 20
         mp: Whether to use multiprocessing. Default is False
+        progress_bar: Whether to show progress bar. Default is True
+        jit: Whether to use custom JIT compiled hashing function (uses numba). Default is True (recommended).
         check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
         filter_below: Threshold Jaccard for filtering candidates. Default is 0.0
         leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
@@ -153,6 +168,8 @@ def filter_jsonl(
         num_permutations,
         num_bands,
         mp,
+        progress_bar,
+        jit,
         check_candidates_exactly,
         filter_below,
         leave_one_for_each_duplicate,
