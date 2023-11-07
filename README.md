@@ -3,6 +3,11 @@
 This is a simple implimentation of the MinHash LSH deduplication algorithm. See more: https://en.wikipedia.org/wiki/MinHash.
 Not meant to be performant or actually usd, created as learning exercise.
 
+
+## UPDATE - 2022-11-07:
+
+Added a JIT minhash backend using numba. Is around ~70x faster than before if jit=True. Selection of hash function will only work for LSH if jit is enabled, as I had to write a custom FNV-1a implementation to get it to work with numba. You can use FNV-1a for everything by setting hash_function = mh.jit.fnv1a32_bytes.
+
 ## Basic Usage 
 
 
@@ -16,30 +21,37 @@ filter_documentlist(
     num_permutations: int = 128,
     num_bands: int = 32,
     mp: bool = False,
+    progress_bar: bool = True,
+    jit: bool = True,
     check_candidates_exactly: bool = False,
-    filter_below: float = 0,
+    filter_below: float = 0.0,
     leave_one_for_each_duplicate: bool = False,
-    existing_index: LSH | str | None = None,
+    existing_index: Union[None, LSH, str] = None,
     index_save_dir: str | None = None,
     save_matches_dir: str | None = None,
-    hash_function: (bytes, int) -> int = xxh32_intdigest
-) -> List[Document]
-Takes a list of documents and returns a new list of documents with signatures Args:
-    documentlist: List of documents to be signed
-    seed: Seed used to generate the seeds for the permutations.
-    num_permutations: Number of permutations to use.
-    num_bands: Number of bands to use for LSH. Default is 20
-    mp: Whether to use multiprocessing. Default is False
-    check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
-    filter_below: Threshold Jaccard for filtering candidates. Default is 0.0. Higher will increase result set (more false positives)
-    leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
-    existing_index: Existing index to use. Default is None. If string, loads index from file. If LSH, uses that index.
-    index_save_dir: Directory to save index to. Default is None
-    hash_function: Hash function to use. Default is xxh32_intdigest
+    hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
+) -> List[Document]:
+    """Takes a list of documents and returns a new list of documents with signatures.
+    If JIT is chosen, hash funciton choice will only be used for LSH. Minhash uses a custom implementation w/ JIT.
 
-Returns:
-    List of documents with signatures
+    Args:
+        documentlist: List of documents to be signed
+        seed: Seed used to generate the seeds for the permutations.
+        num_permutations: Number of permutations to use.
+        num_bands: Number of bands to use for LSH. Default is 20
+        mp: Whether to use multiprocessing. Default is False
+        progress_bar: Whether to show progress bar. Default is True
+        jit: Whether to use custom JIT compiled hashing function (uses numba). Default is True (recommended).
+        check_candidates_exactly: Whether to check candidates or use minhash signature. Default is False
+        filter_below: Threshold Jaccard for filtering candidates. Default is 0.0. Higher will increase result set (more false positives)
+        leave_one_for_each_duplicate: Whether to leave one remaining for each duplicate. Default is False
+        existing_index: Existing index to use. Default is None. If string, loads index from file. If LSH, uses that index.
+        index_save_dir: Directory to save index to. Default is None
+        hash_function: Hash function to use. Default is xxh32_intdigest
 
+    Returns:
+        List of documents with signatures
+    """
 ```
 
 ```python
@@ -52,6 +64,8 @@ filtered_documentlist: List[Document] = mh.filter_documentlist(
     seed=123,
     num_permutations=100,
     mp=True,
+    progress_bar=True,
+    jit=True,
     check_candidates_exactly=False,
     filter_below=0.5,
     leave_one_for_each_duplicate=True,
@@ -124,7 +138,7 @@ hsr = mh.Hasher(
     )
 
 documentlist: List[Document] = mh.jsonl_to_documentlist("path/to/file.jsonl")
-hashed_documents = hsr.hash_documents_batched(documentlist)
+hashed_documents = hsr.hash_documents(documentlist)
 ```
 
 ### LSHIndex
