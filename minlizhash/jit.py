@@ -4,8 +4,15 @@ from typing import Callable
 import numpy as np
 import numpy.typing as npt
 from numba import jit, njit
+from numba.typed import List
 
-from .types import DocumentSignature, DocumentSigner, PermutationSeeds, TokenArray
+from .types import (
+    Document,
+    DocumentSignature,
+    DocumentSigner,
+    PermutationSeeds,
+    TokenArray,
+)
 
 FNV_32_PRIME = 0x01000193
 FNV_64_PRIME = 0x100000001B3
@@ -78,7 +85,7 @@ def minhash_jit(
 
 
 @njit
-def minhash_jit_all(
+def sign_tokens_jit(
     tokens: TokenArray,
     seeds: PermutationSeeds,
 ) -> npt.NDArray[np.uint64]:
@@ -95,4 +102,4 @@ class DocumentSignerJIT(DocumentSigner):
         self.hash_function = hash_function
 
     def __call__(self, tokens, seeds) -> npt.NDArray[np.uint64]:
-        return minhash_jit_all(tokens.astype(np.uint64), seeds[:, 0])
+        return sign_tokens_jit(tokens.astype(np.uint64), seeds[:, 0])
