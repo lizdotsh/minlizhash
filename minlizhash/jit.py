@@ -4,6 +4,7 @@ from typing import Callable
 import numpy as np
 import numpy.typing as npt
 from numba import njit
+from xxhash import xxh32_intdigest
 
 from .types import DocumentSigner, PermutationSeeds, TokenArray
 
@@ -21,6 +22,19 @@ def fnv1a32(num: np.int32, seed: np.int32) -> np.uint64:
 
     hval = 0x811C9DC5 ^ seed
     for byte in int32_to_bytes(num):
+        hval = hval ^ byte
+        hval = (hval * 0x01000193) % 2**32
+    return np.uint64(hval)
+
+
+@njit
+def fnv1a32_bytes(data: bytes, seed: np.int32) -> np.uint64:
+    """
+    Returns the 32 bit FNV-1a hash value for the given number.
+    """
+
+    hval = 0x811C9DC5 ^ seed
+    for byte in data:
         hval = hval ^ byte
         hval = (hval * 0x01000193) % 2**32
     return np.uint64(hval)
@@ -46,10 +60,15 @@ def sign_tokens_jit(
 
 
 class DocumentSignerJIT(DocumentSigner):
-    """Signs the document token by token, vectorizing across the seeds for each iteration"""
+    """Signs the document token by token, vectorizing across the seeds for each iteration.
+    hash function selection exclusively applies to what is used by external callers (in this case, LSH).
+    minhash itself works with home grown fnv1a32 implementation.
+    """
 
-    def __init__(self, hash_function: Callable[[TokenArray, int], int] = minhash_jit):
-        self.hash_function = hash_function
+    def __init__(
+        self, hash_function_lsh: Callable[[bytes, int], int] = xxh32_intdigest
+    ):
+        self.hash_function = hash_function_lsh
 
     def __call__(self, tokens, seeds) -> npt.NDArray[np.uint64]:
         return sign_tokens_jit(tokens.astype(np.uint64), seeds[:, 0])

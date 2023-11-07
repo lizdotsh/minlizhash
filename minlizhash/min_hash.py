@@ -56,14 +56,15 @@ def filter_documentlist(
     progress_bar: bool = True,
     jit: bool = True,
     check_candidates_exactly: bool = False,
-    filter_below: float = 0.0,
+    filter_below: float = 0.8,
     leave_one_for_each_duplicate: bool = False,
     existing_index: Union[None, LSH, str] = None,
     index_save_dir: str | None = None,
     save_matches_dir: str | None = None,
     hash_function: Callable[[bytes, int], int] = xxh32_intdigest,
 ) -> List[Document]:
-    """Takes a list of documents and returns a new list of documents with signatures. If JIT is chosen, hash funciton choice will be ignored.
+    """Takes a list of documents and returns a new list of documents with signatures.
+    If JIT is chosen, hash funciton choice will only be used for LSH. Minhash uses a custom implementation w/ JIT.
     Args:
         documentlist: List of documents to be signed
         seed: Seed used to generate the seeds for the permutations.
@@ -136,7 +137,7 @@ def filter_jsonl(
     progress_bar: bool = True,
     jit: bool = True,
     check_candidates_exactly: bool = False,
-    filter_below: float = 0.0,
+    filter_below: float = 0.8,
     leave_one_for_each_duplicate: bool = False,
     existing_index: Union[None, LSH, str] = None,
     index_save_dir: str | None = None,
@@ -145,6 +146,8 @@ def filter_jsonl(
 ) -> None:
     """Takes a jsonl file and returns a new jsonl file with signatures
     May update later to batch load or similar. If you need more customization, all the APIs are internally available.
+    If JIT is chosen, hash funciton choice will only be used for LSH. Minhash uses a custom implementation w/ JIT.
+
     Args:
         input_file: Path to input jsonl file
         output_file: Path to output jsonl file

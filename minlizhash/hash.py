@@ -4,6 +4,7 @@ from multiprocessing import Pool
 from typing import Callable, List
 
 import numpy as np
+import numpy.typing as npt
 from tqdm import tqdm
 from xxhash import xxh32_intdigest
 
@@ -30,7 +31,9 @@ class DocumentSignerMinAfter(DocumentSigner):
     def __call__(
         self, tokens: TokenArray, seeds: PermutationSeeds
     ) -> DocumentSignature:
-        res = np.zeros((tokens.shape[0], len(seeds)), dtype=np.uint64)
+        res: npt.NDArray[np.uint64] = np.zeros(
+            (tokens.shape[0], len(seeds)), dtype=np.uint64
+        )
         for i in range(tokens.shape[0]):
             res[i] = self._hash_function_vec(tokens[i], seeds)
         # get min for each column
@@ -48,7 +51,7 @@ class DocumentSignerMinBefore(DocumentSigner):
 
     # self._hash_function_vec = np.vectorize(hash_function, excluded=['seed'], otypes=[np.uint64])
     def _hash_single_seed(self, tokens: TokenArray, seed: int) -> np.uint64:
-        empty = np.empty((tokens.shape[0],), dtype=np.uint64)
+        empty: npt.NDArray[np.uint64] = np.empty((tokens.shape[0],), dtype=np.uint64)
         for i in range(tokens.shape[0]):
             empty[i] = self.hash_function(tokens[i].tobytes(), seed)
         return empty.min()
