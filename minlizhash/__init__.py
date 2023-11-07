@@ -1,4 +1,4 @@
-from . import LSH, hash, min_hash, tokens, types, utils
+from . import LSH, hash, jit, min_hash, tokens, types, utils
 from .hash import Hasher
 from .LSH import LSHIndex, check_candidatelist, filter_checked_candidates
 from .min_hash import (
@@ -27,4 +27,5 @@ __all__ = [
     tokens,
     types,
     utils,
+    jit,
 ]

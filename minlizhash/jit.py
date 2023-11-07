@@ -79,13 +79,13 @@ def minhash_jit(
 
 @njit
 def minhash_jit_all(
-    tokens: npt.NDArray[np.int32],
-    seeds: npt.NDArray[np.int32],
+    tokens: TokenArray,
+    seeds: PermutationSeeds,
 ) -> npt.NDArray[np.uint64]:
-    signature = np.zeros((seeds.shape[0],), dtype=np.uint64)
-    for i in range(signature.shape[0]):
-        signature[i] = minhash_jit(tokens, seeds[i])
-    return signature
+    arr = np.empty((seeds.shape[0],), dtype=np.uint64)
+    for i in range(seeds.shape[0]):
+        arr[i] = minhash_jit(tokens, seeds[i])
+    return arr
 
 
 class DocumentSignerJIT(DocumentSigner):
@@ -94,7 +94,5 @@ class DocumentSignerJIT(DocumentSigner):
     def __init__(self, hash_function: Callable[[TokenArray, int], int] = minhash_jit):
         self.hash_function = hash_function
 
-    def __call__(
-        self, tokens: TokenArray, seeds: PermutationSeeds
-    ) -> npt.NDArray[np.uint64]:
-        return minhash_jit_all(tokens, seeds)
+    def __call__(self, tokens, seeds) -> npt.NDArray[np.uint64]:
+        return minhash_jit_all(tokens.astype(np.uint64), seeds[:, 0])
