@@ -3,7 +3,8 @@ from typing import Callable
 
 import numpy as np
 import numpy.typing as npt
-from numba import njit
+from numba import int32, njit, uint64, vectorize
+from numba.typed import List
 
 from .types import DocumentSignature, DocumentSigner, PermutationSeeds, TokenArray
 
@@ -49,13 +50,38 @@ def minhash_jit(tokens: npt.NDArray[np.int32], hash_seed: np.int32) -> np.uint64
 
 @njit
 def sign_tokens_jit(
-    tokens: TokenArray,
-    seeds: PermutationSeeds,
+    tokens: TokenArray,  # nparray of int32
+    seeds: PermutationSeeds,  # nparray of int32
 ) -> npt.NDArray[np.uint64]:
     arr = np.empty((seeds.shape[0],), dtype=np.uint64)
     for i in range(seeds.shape[0]):
         arr[i] = minhash_jit(tokens, seeds[i])
     return arr
+
+
+# @njit
+# def sign_tokenarr_jit(
+#     tokenArr: list,  #: npt.NDArray[Any],
+#     seeds: PermutationSeeds,
+# ) -> list[npt.NDArray[np.uint64]]:
+#     # arr = np.empty((tokenArr.shape[0], seeds.shape[0]), dtype=np.uint64)
+#     # for i in range(seeds.shape[0]):
+#     #    arr[i] = minhash_jit(tokenArr[i], seeds[:, 0])
+#     # return arr
+#     return [sign_tokens_jit(tokenArr[i], seeds[:, 0]) for i in range(len(tokenArr))]
+
+
+# def to_numba_list(list[TokenArray]) -> List:
+
+
+# @njit
+# def sign_tokens_tuple(
+#     tupleoftokens: tuple[TokenArray], seeds: PermutationSeeds
+# ) -> npt.NDArray[np.uint64]:
+#     # arr = np.empty((len(tupleoftokens), len(seeds)), dtype=np.uint64)
+#     # for i in range(arr.shape[0]):
+#     #    arr[i] = minhash_jit(tupleoftokens[i], seeds)
+#     # return arr
 
 
 class DocumentSignerJIT(DocumentSigner):
