@@ -84,7 +84,10 @@ def filter_documentlist(
         List of documents with signatures
     """
     if jit:
-        signer: DocumentSigner = DocumentSignerJIT()
+        signer: DocumentSigner = DocumentSignerJIT(
+            hash_function_lsh=hash_function
+            # Note: If using JIT, custom hash is only used for LSH, not minhash.
+        )
     else:
         signer = DocumentSignerMinBefore(hash_function=hash_function)
     hsr = Hasher(

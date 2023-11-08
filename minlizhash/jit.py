@@ -4,9 +4,8 @@ from typing import Callable
 import numpy as np
 import numpy.typing as npt
 from numba import njit
-from xxhash import xxh32_intdigest
 
-from .types import DocumentSigner, PermutationSeeds, TokenArray
+from .types import DocumentSignature, DocumentSigner, PermutationSeeds, TokenArray
 
 
 @njit
@@ -65,10 +64,8 @@ class DocumentSignerJIT(DocumentSigner):
     minhash itself works with home grown fnv1a32 implementation.
     """
 
-    def __init__(
-        self, hash_function_lsh: Callable[[bytes, int], int] = xxh32_intdigest
-    ):
+    def __init__(self, hash_function_lsh: Callable[[bytes, int], int] = fnv1a32_bytes):
         self.hash_function = hash_function_lsh
 
-    def __call__(self, tokens, seeds) -> npt.NDArray[np.uint64]:
+    def __call__(self, tokens, seeds) -> DocumentSignature:
         return sign_tokens_jit(tokens.astype(np.uint64), seeds[:, 0])
