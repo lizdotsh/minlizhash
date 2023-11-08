@@ -8,6 +8,8 @@ Not meant to be performant or actually used, created as learning exercise. It is
 
 Added a JIT minhash backend using numba. Is around ~70x faster than before if jit=True. Selection of hash function will only work for LSH if jit is enabled, as I had to write a custom FNV-1a implementation to get it to work with numba. You can use FNV-1a for everything by setting hash_function = mh.jit.fnv1a32_bytes.
 
+Also now available on pypi under `minlizhash`. Just doing `pip install minlizhash` should work!
+
 ## Basic Usage 
 
 
