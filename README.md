@@ -15,7 +15,7 @@ Also now available on pypi under `minlizhash`. Just doing `pip install minlizhas
 
 Simple usage example. 
 
-```
+```python
 # use filter_jsonl with very similar args to go directly from jsonl to filtered jsonl
 filter_documentlist(
     documentlist: List[Document],
