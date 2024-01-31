@@ -3,6 +3,9 @@
 This is a simple implimentation of the MinHash LSH deduplication algorithm. See more: https://en.wikipedia.org/wiki/MinHash.
 Not meant to be performant or actually used, created as learning exercise. It is approximately 8x faster than the datasketch implimentation in JIT mode, however. Also would highly appreciate any feedback on the code / in general.  
 
+## UPDATE - 2024-01-31:
+
+Have learned a lot since making this. Recently made a really quick concurrent [implimentation of this in golang.](https://gist.github.com/lizdotsh/a2db90bc15b2a61be3cb0ec55763cee8)  Just a quick thing I made in an hour or two but figured I should mention it.
 
 ## UPDATE - 2023-11-07:
 
